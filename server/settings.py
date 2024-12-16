@@ -12,10 +12,11 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-print(BASE_DIR,"base-dir")
+# print(BASE_DIR,"base-dir")
 # from porject root locate file .env
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
@@ -28,7 +29,7 @@ SECRET_KEY = os.environ["SECRET_KEY"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ["DEV"] if os.environ["DEV"] else os.environ["PROD"]
-print(DEBUG)
+# print(DEBUG)
 
 ALLOWED_HOSTS = []
 
@@ -42,6 +43,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
+    "api.apps.ApiConfig",
+    "rest_framework",
+    "corsheaders"
 ]
 
 MIDDLEWARE = [
@@ -52,6 +57,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    
+    "corsheaders.middleware.CorsMiddleware"
 ]
 
 ROOT_URLCONF = 'server.urls'
@@ -80,8 +87,12 @@ WSGI_APPLICATION = 'server.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': os.environ["DB_ENGINE"],
+        'NAME': os.environ["DB_NAME"],
+        'USER': os.environ["DB_USER"],
+        'PASSWORD': os.environ["DB_PASSWORD"],
+        'HOST': os.environ["DB_HOST"],
+        'PORT': os.environ["DB_PORT"],
     }
 }
 
@@ -127,4 +138,24 @@ STATIC_URL = '/static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
+# EMAIL CONFIG
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.environ["ENV_EMAIL_HOST"]
+EMAIL_PORT = os.environ["ENV_EMAIL_PORT"]
+EMAIL_HOST_USER = os.environ.get("ENV_EMAIL")
+EMAIL_HOST_PASSWORD = os.environ["ENV_EMAIL_PASSWORD"]
+EMAIL_USE_TLS = os.environ["ENV_EMAIL_TSL"]
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "Access-Control-Allow-Origin",
+    "secret_access",
+    "auth"
+    "secret_refresh"
+    "Cookie",
+    "jwt-token"
+]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = ("GET","POST", 'PUT', "PATCH", 'DELETE', "OPTIONS")
