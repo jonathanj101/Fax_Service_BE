@@ -10,6 +10,11 @@ responses["SUCCESS"] = {
     },
     "STATUS": True
 }
+# UNPROCESSIBLE ENTITY
+# responses['UNPROCESSIBLE_ENTITY'] = {
+#     "CODE":422,
+
+# }
 
 # SERVER ERROR
 responses["SERVER_ERROR"] = {
