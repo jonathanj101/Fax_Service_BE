@@ -13,7 +13,7 @@ from api.serializers.user_serializer import UserSerializer
 # Helpers
 from api.utils.helpers.helpers import generate_random_password, reset_password_notify_user, forgot_password_notify_user
 from api.utils.server_responses.http_responses import SUCCESS, SUCCESS_CODE, SERVER_ERROR, UN_AUTHORIZED,FORBIDEN_ACCESS
-from api.utils.common.common import EMAIL_OWNER
+# from api.utils.common.common import EMAIL_OWNER
 
 # Auth
 from api.utils.auth.jwt_auth import create_access_jwtoken,decode_access_jwtoken, create_refresh_jwtoken
@@ -21,7 +21,7 @@ from api.utils.auth.jwt_auth import create_access_jwtoken,decode_access_jwtoken,
 # Loading environment variables
 load_dotenv()
 
-#unique id randominize
+# unique id randominize
 uid = uuid4()
 
 
@@ -38,7 +38,9 @@ def login(request):
     # print(request.COOKIES.get("jwt-token"))
     USER_MODEL = UserModel.objects.filter(username=USER_OBJ["username"]).first()
 
-    if USER_MODEL is not None:
+    if USER_MODEL is not None and check_password(
+        USER_OBJ["password"], USER_MODEL.password
+    ):
         if check_password(USER_OBJ["password"], USER_MODEL.password):
             serializer = UserSerializer(UserModel.objects.filter(
                 username=USER_OBJ["username"]), many=True).data
@@ -59,19 +61,10 @@ def login(request):
             }
 
             return response
-
-        else:
-            return Response(
-                {
-                    "message": "The password you entered does not match our record!",
-                    "status_code": UN_AUTHORIZED["CODE"],
-                    "status": UN_AUTHORIZED["STATUS"],
-                }
-            )
     else:
         return Response(
             {
-                "message": f"Username {USER_OBJ['username']} does not exist!",
+                "message": f" The username/password  you entered, does not exis within our record! Please try again!",
                 "status_code": UN_AUTHORIZED["CODE"],
                 "status": UN_AUTHORIZED["STATUS"],
             }
@@ -83,7 +76,7 @@ def log_out(request):
     print("api.views.user.log_out()")
     # print(request.COOKIES)
     response = Response()
-    response.delete_cookie(key='refresh_secret', samesite="None")
+    response.delete_cookie(key="secret_refresh", samesite="None")
     response.data = {
         "message": "You successfully logged out!",
         "status_code": SUCCESS_CODE["STANDARD"],
@@ -98,7 +91,6 @@ def register(request):
     print("api.register()")
 
     REQUEST_BODY = json.loads(request.body)
-    
 
     USER_OBJ = {
         "first_name": REQUEST_BODY['firstName'],
@@ -167,7 +159,7 @@ def register(request):
             }
         )
 
-
+# need re-work logic with recently updated jwt auth logic
 @api_view(["GET"])
 def get_logged_in_user_info(request):
     print("api.get_logged_in_info()")
