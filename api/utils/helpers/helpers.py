@@ -84,3 +84,15 @@ def reset_password_notify_user(subject, message, subject2, user_mail, username):
     if mailed:
         return True,
     return False
+
+
+def split_bearer_value(token):
+    # print(token)
+    if token:
+
+        token_striped = token.strip("Bearer")
+        token_striped = token_striped.strip(" ")
+        # print(token_striped)
+        return token_striped
+    else:
+        return ""
