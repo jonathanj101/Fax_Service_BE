@@ -22,6 +22,7 @@ from api.utils.server_responses.http_responses import (
     SERVER_ERROR,
     UN_AUTHORIZED,
     FORBIDEN_ACCESS,
+    UNPROCESSIBLE_ENTITY,
 )
 
 # Auth
@@ -37,47 +38,55 @@ def create_employee(request):
 
     REQUEST_BODY = json.loads(request.body)
 
-    DATA = {"business_id": REQUEST_BODY["companyId"], "user_id": REQUEST_BODY["userId"]}
     try:
+        DATA = {
+            "business_id": REQUEST_BODY["companyId"],
+            "user_id": REQUEST_BODY["userId"],
+        }
         token = split_bearer_value(request.headers["Authorization"])
-        isUser = decode_access_jwtoken(token)
-        try:
-            business = CompanyModel.objects.filter(
-                business_id=DATA["business_id"]
-            ).first()
-            user = UserModel.objects.filter(user_id=DATA["user_id"]).first()
+        decoded_token = decode_access_jwtoken(token)
+        if decoded_token["isDecoded"]:
 
-            EMPLOYEE = EmployeeModel(
-                company_id=business.business_id, user_id=user.user_id
-            )
+            try:
+                business = CompanyModel.objects.filter(
+                    business_id=DATA["business_id"]
+                ).first()
+                USER = UserModel.objects.filter(
+                    user_id=decoded_token["payload"]
+                ).first()
 
-            serializer = EmployeeSerializer(
-                EmployeeModel.objects.filter(company_id=business.business_id), many=True
-            ).data[0]
+                EMPLOYEE = EmployeeModel(
+                    company_id=business.business_id, user_id=USER.user_id
+                )
 
-            EMPLOYEE.save()
+                serializer = EmployeeSerializer(
+                    EmployeeModel.objects.filter(company_id=business.business_id),
+                    many=True,
+                ).data[0]
 
-            return Response(
-                {
-                    "message": "SUCCESS",
-                    "data": serializer,
-                    "status": SUCCESS["STATUS"],
-                    "status_code": SUCCESS_CODE["STANDARD"],
-                }
-            )
+                EMPLOYEE.save()
 
-        except FieldError as error:
-            print("An exception occurred")
-            logging.error("An Invalid Request Occurred", error)
-            return Response(
-                {
-                    "message": SERVER_ERROR["MESSAGE"],
-                    "status": SERVER_ERROR["STATUS"],
-                    "status_code": SERVER_ERROR["CODE"],
-                }
-            )
+                return Response(
+                    {
+                        "message": "SUCCESS",
+                        "data": serializer,
+                        "status": SUCCESS["STATUS"],
+                        "status_code": SUCCESS_CODE["STANDARD"],
+                    }
+                )
 
-    except KeyError or TypeError as error:
+            except FieldError as error:
+                print("An exception occurred")
+                logging.error("An Invalid Request Occurred", error)
+                return Response(
+                    {
+                        "message": SERVER_ERROR["MESSAGE"],
+                        "status": SERVER_ERROR["STATUS"],
+                        "status_code": SERVER_ERROR["CODE"],
+                    }
+                )
+
+    except (KeyError, TypeError) as error:
         logging.error("An Invalid Request Occurred", error)
         return Response(
             {
@@ -87,7 +96,7 @@ def create_employee(request):
             }
         )
 
-    except AttributeError or AssertionError as error:
+    except (AttributeError, AssertionError) as error:
         logging.error("An Invalid Request Occurred", error)
         return Response(
             {
@@ -120,7 +129,7 @@ def get_employees_by_company_id(request, company_id):
             }
         )
         # to do - > need more errors handling
-    except KeyError or TypeError as error:
+    except (KeyError, TypeError) as error:
         logging.error("An Error Occurred -> ", error)
 
         return Response(
@@ -128,5 +137,15 @@ def get_employees_by_company_id(request, company_id):
                 "message": UN_AUTHORIZED["MESSAGE"],
                 "status": UN_AUTHORIZED["STATUS"],
                 "status_code": UN_AUTHORIZED["CODE"],
+            }
+        )
+    except ValueError as error:
+        logging.error("An Error Occurred -> ", error)
+
+        return Response(
+            {
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
             }
         )
