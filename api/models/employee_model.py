@@ -8,7 +8,7 @@ import uuid
 class EmployeeModel(models.Model):
     # employee_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # need testing
-    # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # user_id = models.ForeignKey(
     #     "UserModel", on_delete=DO_NOTHING, null=False, default=""
     # )
@@ -20,4 +20,6 @@ class EmployeeModel(models.Model):
     timestamp = models.DateField(blank=True, default=timezone.now)
 
     def __str__(self):
-        return f"(`{self.user_id}`, `{self.company_id}`, `{self.timestamp}`)"
+        return (
+            f"(`{self.id}`,`{self.user_id}`, `{self.company_id}`, `{self.timestamp}`)"
+        )
