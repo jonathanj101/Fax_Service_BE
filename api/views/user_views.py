@@ -3,16 +3,30 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password, check_password
 from dotenv import load_dotenv
-from uuid import uuid4
+import uuid
 import json
+import logging
 
 # Modules
 from api.models.user_model import UserModel
 from api.serializers.user_serializer import UserSerializer
 
 # Helpers
-from api.utils.helpers.helpers import generate_random_password, reset_password_notify_user, forgot_password_notify_user
-from api.utils.server_responses.http_responses import SUCCESS, SUCCESS_CODE, SERVER_ERROR, UN_AUTHORIZED,FORBIDEN_ACCESS
+from api.utils.helpers.helpers import (
+    generate_random_password,
+    reset_password_notify_user,
+    forgot_password_notify_user,
+    split_bearer_value,
+)
+from api.utils.server_responses.http_responses import (
+    SUCCESS,
+    SUCCESS_CODE,
+    SERVER_ERROR,
+    UN_AUTHORIZED,
+    FORBIDEN_ACCESS,
+    UNPROCESSIBLE_ENTITY,
+)
+
 # from api.utils.common.common import EMAIL_OWNER
 
 # Auth
@@ -21,9 +35,6 @@ from api.utils.auth.jwt_auth import create_access_jwtoken,decode_access_jwtoken,
 # Loading environment variables
 load_dotenv()
 
-# unique id randominize
-uid = uuid4()
-
 
 @api_view(["OPTIONS", "PUT"])
 def login(request):
@@ -31,45 +42,71 @@ def login(request):
 
     REQUEST_BODY = json.loads(request.body)
 
-    USER_OBJ = {
-        'username': REQUEST_BODY['username'],
-        'password': REQUEST_BODY['password'],
-    }
-    # print(request.COOKIES.get("jwt-token"))
-    USER_MODEL = UserModel.objects.filter(username=USER_OBJ["username"]).first()
+    try:
+        USER_OBJ = {
+            "username": REQUEST_BODY["username"],
+            "password": REQUEST_BODY["password"],
+        }
+        # print(request.COOKIES.get("jwt-token"))
+        USER_MODEL = UserModel.objects.filter(username=USER_OBJ["username"]).first()
 
-    if USER_MODEL is not None and check_password(
-        USER_OBJ["password"], USER_MODEL.password
-    ):
-        if check_password(USER_OBJ["password"], USER_MODEL.password):
-            serializer = UserSerializer(UserModel.objects.filter(
-                username=USER_OBJ["username"]), many=True).data
+        if USER_MODEL is not None and check_password(
+            USER_OBJ["password"], USER_MODEL.password
+        ):
+            if check_password(USER_OBJ["password"], USER_MODEL.password):
+                serializer = UserSerializer(
+                    UserModel.objects.filter(username=USER_OBJ["username"]), many=True
+                ).data[0]
 
-            secret_access = create_access_jwtoken(USER_MODEL.pk)
-            secret_refresh = create_refresh_jwtoken(USER_MODEL.pk)
+                secret_access = create_access_jwtoken(serializer.user_id)
+                secret_refresh = create_refresh_jwtoken(serializer.user_id)
 
-            serializer[0]["token"] = secret_access
+                response = Response()
+                response.set_cookie(
+                    key="secret_refresh",
+                    value=secret_refresh,
+                    httponly=True,
+                    samesite="None",
+                )
+                response.data = {
+                    "message": "You Log In successfully!",
+                    "data": serializer[0],
+                    "status_code": SUCCESS_CODE["STANDARD"],
+                    "status": SUCCESS["STATUS"],
+                }
 
-            response = Response()
-            response.set_cookie(key='secret_refresh', value=secret_refresh,
-                                httponly=True, samesite="None")
-            response.data = {
-                "message": "You Log In successfully!",
-                'data': serializer[0],
-                "status_code": SUCCESS_CODE["STANDARD"],
-                "status": SUCCESS["STATUS"],
-            }
+                response.headers = {"Authorization": secret_access}
 
-            return response
-    else:
+                return response
+        else:
+            return Response(
+                {
+                    "message": f" The username/password  you entered, does not exis within our record! Please try again!",
+                    "status_code": SUCCESS["CODE"]["STANDARD"],
+                    "status": SUCCESS["STATUS"],
+                }
+            )
+    except (KeyError, TypeError) as error:
+        print("An KeyError or TypeError Occurred -> ", error)
+        logging.error("logging error -> ", error)
         return Response(
             {
-                "message": f" The username/password  you entered, does not exis within our record! Please try again!",
-                "status_code": UN_AUTHORIZED["CODE"],
-                "status": UN_AUTHORIZED["STATUS"],
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
             }
         )
 
+    except AssertionError as error:
+        print("An AssertionError Occurred -> ", error)
+        logging.error("logging error -> ", error)
+        return Response(
+            {
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
+            }
+        )
 
 @api_view(["PUT"])
 def log_out(request):
@@ -83,8 +120,9 @@ def log_out(request):
         "status": SUCCESS["STATUS"]
     }
 
-    return response
+    response.headers = ""
 
+    return response
 
 @api_view(['PUT', 'POST'])
 def register(request):
@@ -92,70 +130,104 @@ def register(request):
 
     REQUEST_BODY = json.loads(request.body)
 
-    USER_OBJ = {
-        "first_name": REQUEST_BODY['firstName'],
-        "middle_name": REQUEST_BODY["middleName"],
-        "last_name": REQUEST_BODY['lastName'],
-        "email": REQUEST_BODY['email'],
-        "username": REQUEST_BODY['username'],
-        "password": make_password(REQUEST_BODY['password'], salt=None, hasher='default'),
-        "role": REQUEST_BODY['role']
-    }
+    try:
+        USER_OBJ = {
+            "first_name": REQUEST_BODY["firstName"],
+            "middle_name": REQUEST_BODY["middleName"],
+            "last_name": REQUEST_BODY["lastName"],
+            "email": REQUEST_BODY["email"],
+            "username": REQUEST_BODY["username"],
+            "password": make_password(
+                REQUEST_BODY["password"], salt=None, hasher="default"
+            ),
+            "role": REQUEST_BODY["role"],
+        }
 
-    # FILTER USER BY USERNAME, TO CHECK IF SAME USERNAME EXISTS WITHIN DB
-    FILTER_BY_USERNAME = UserModel.objects.filter(
-        username=USER_OBJ['username']).first()
+        # FILTER USER BY USERNAME, TO CHECK IF SAME USERNAME EXISTS WITHIN DB
+        FILTER_BY_USERNAME = UserModel.objects.filter(
+            username=USER_OBJ["username"]
+        ).first()
 
-    # FILTER USER BY EMAIL, TO CHECK IF SAME EMAIL EXISTS WITHIN DB
-    FILTER_BY_EMAIL = UserModel.objects.filter(email=USER_OBJ['email']).first()
+        # FILTER USER BY EMAIL, TO CHECK IF SAME EMAIL EXISTS WITHIN DB
+        FILTER_BY_EMAIL = UserModel.objects.filter(email=USER_OBJ["email"]).first()
 
-    if FILTER_BY_USERNAME is not None:
-        print("username is taken")
+        if FILTER_BY_USERNAME is not None:
+            print("username is taken")
+            return Response(
+                {
+                    "message": f"{USER_OBJ['username']} is already taken. Please choose another username.",
+                    "status_code": SERVER_ERROR["CODE"],
+                    "status": SERVER_ERROR["STATUS"],
+                }
+            )
+
+        elif FILTER_BY_EMAIL is not None:
+            print("email is taken")
+            return Response(
+                {
+                    "message": f"{USER_OBJ['email']} is already taken. Please choose another email.",
+                    "status_code": SERVER_ERROR["CODE"],
+                    "status": SERVER_ERROR["STATUS"],
+                }
+            )
+
+        elif FILTER_BY_EMAIL and FILTER_BY_USERNAME is not None:
+            print("email and username are taken")
+            return Response(
+                {
+                    "message": f"username {USER_OBJ['username']} and e-mail {USER_OBJ['email']} are both taken. Please choose another username/email.",
+                    "status_code": SERVER_ERROR["CODE"],
+                    "status": SERVER_ERROR["STATUS"],
+                }
+            )
+
+        else:
+            print("saving user to db")
+            # print(USER_OBJ)
+            # request.session["user"] = uid.int
+            # request.session.set_expiry(7500)
+            USER = UserModel(
+                first_name=USER_OBJ["first_name"],
+                last_name=USER_OBJ["last_name"],
+                username=USER_OBJ["username"],
+                middle_name=USER_OBJ["middle_name"],
+                password=USER_OBJ["password"],
+                email=USER_OBJ["email"],
+                role=USER_OBJ["role"],
+            )
+            USER.save()
+            serializer = UserSerializer(
+                UserModel.objects.filter(username=USER_OBJ["username"]), many=True
+            ).data[0]
+            # print(serializer)
+            return Response(
+                {
+                    "message": f"User {USER_OBJ['first_name']} {USER_OBJ['last_name']} has been created successfully!",
+                    "status_code": SUCCESS_CODE["CREATED"],
+                    "status": SUCCESS["STATUS"],
+                    "data": serializer,
+                }
+            )
+
+    except (KeyError, TypeError) as error:
+        print("An KeyError or TypeError Occurred -> ", error)
+        logging.error("logging error -> ", error)
         return Response(
             {
-                "message": f"{USER_OBJ['username']} is already taken. Please choose another username.",
-                "status_code": SERVER_ERROR["CODE"],
-                "status": SERVER_ERROR["STATUS"]
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
             }
         )
 
-    elif FILTER_BY_EMAIL is not None:
-        print("email is taken")
+    except AssertionError as error:
+        print("An AssertionError Occurred -> ", error)
+        logging.error("logging error -> ", error)
         return Response(
             {
-                "message": f"{USER_OBJ['email']} is already taken. Please choose another email.",
-                "status_code": SERVER_ERROR["CODE"],
-                "status": SERVER_ERROR["STATUS"]
-            }
-        )
-
-    elif FILTER_BY_EMAIL and FILTER_BY_USERNAME is not None:
-        print("email and username are taken")
-        return Response(
-            {
-                "message": f"username {USER_OBJ['username']} and e-mail {USER_OBJ['email']} are both taken. Please choose another username/email.",
-                "status_code": SERVER_ERROR["CODE"],
-                "status": SERVER_ERROR["STATUS"]
-            }
-        )
-
-    else:
-        print("saving user to db")
-        # print(USER_OBJ)
-        request.session["user"] = uid.int
-        request.session.set_expiry(7500)
-        USER = UserModel(first_name=USER_OBJ["first_name"], last_name=USER_OBJ["last_name"],
-                    username=USER_OBJ["username"],middle_name=USER_OBJ['middle_name'], password=USER_OBJ["password"], email=USER_OBJ['email'], role=USER_OBJ["role"])
-        USER.save()
-        serializer = UserSerializer(UserModel.objects.filter(
-            username=USER_OBJ["username"]), many=True).data
-        # print(serializer)
-        return Response(
-            {
-                "message": f"User {USER_OBJ['first_name']} {USER_OBJ['last_name']} has been created successfully!",
-                'status_code': SUCCESS_CODE["CREATED"],
-                'status': SUCCESS["STATUS"],
-                "data": serializer
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
             }
         )
 
@@ -165,16 +237,17 @@ def get_logged_in_user_info(request):
     print("api.get_logged_in_info()")
 
     REQUEST_BODY = json.loads(request.body)
-    token = REQUEST_BODY["token"]
 
     try:
-        isUser = decode_access_jwtoken(token)
+        token = split_bearer_value(request.headers["Authorization"])
+        decoded_token = decode_access_jwtoken(token)
         # user = User.objects.filter(pk=isUser).first()
         # if (user is not None):
-        if isUser:
+        if decoded_token["isDecoded"]:
             print("found user")
             serializer = UserSerializer(
-                UserModel.objects.filter(pk=isUser), many=True).data
+                UserModel.objects.filter(pk=decoded_token["payload"]), many=True
+            ).data[0]
             # USER_OBJ['first_name'] = user.first_name
             # USER_OBJ['last_name'] = user.last_name
             # USER_OBJ['email'] = user.email
@@ -185,19 +258,30 @@ def get_logged_in_user_info(request):
                 {
                     "status_code": SUCCESS_CODE["ACCEPTED"],
                     "status": SUCCESS["STATUS"],
-                    "data": serializer[0]
+                    "data": serializer,
                 }
             )
-    except jwt.exceptions.DecodeError as error:
-        print("user not authenticated", error)
+    except (KeyError, TypeError) as error:
+        print("An KeyError or TypeError Occurred -> ", error)
+        logging.error("logging error -> ", error)
         return Response(
             {
-                "message": f"{UN_AUTHORIZED['MESSAGE']}",
-                "status_code": UN_AUTHORIZED["CODE"],
-                "status": UN_AUTHORIZED["STATUS"],
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
             }
         )
 
+    except (AssertionError, KeyError) as error:
+        print("An AssertionError Occurred -> ", error)
+        logging.error("logging error -> ", error)
+        return Response(
+            {
+                "message": UN_AUTHORIZED["MESSAGE"],
+                "status": UN_AUTHORIZED["STATUS"],
+                "status_code": UN_AUTHORIZED["CODE"],
+            }
+        )
 
 @api_view(["POST"])
 def forgot_password(request):
@@ -209,48 +293,67 @@ def forgot_password(request):
     request.session["user"] = uid.int
     # set session expiration to 10 minutes only
     request.session.set_expiry(600)
-    USER = UserModel.objects.filter(
-        username=REQUEST_BODY['username']).first()
-    if USER is not None:
-        # We want to generate temporary password
-        temporary_password = generate_random_password()
-        # inside that email, there would be a link that would navigate user to a page to log in with that temporary password and then reset password.
-        subject = "Company Name",
-        subject2 = "Do-not reply to this email!"
-        message = f"Forgot Password!"
-        forgot_password_notify_user(
-            subject, message, subject2, USER.email, USER.username)
-        # send that temporary password to client side,
-        # for user to able to proceed on reseting password on reset password page
+    try:
+        USER = UserModel.objects.filter(username=REQUEST_BODY["username"]).first()
+        if USER is not None:
+            # We want to generate temporary password
+            temporary_password = generate_random_password()
+            # inside that email, there would be a link that would navigate user to a page to log in with that temporary password and then reset password.
+            subject = ("Company Name",)
+            subject2 = "Do-not reply to this email!"
+            message = f"Forgot Password!"
+            forgot_password_notify_user(
+                subject, message, subject2, USER.email, USER.username
+            )
+            # send that temporary password to client side,
+            # for user to able to proceed on reseting password on reset password page
+            return Response(
+                {
+                    "message": "RESET_PASSWORD",
+                    "status": True,
+                    "status_code": SUCCESS_CODE["STANDARD"],
+                    "data": temporary_password,
+                }
+            )
         return Response(
             {
-                "message": "RESET_PASSWORD",
-                "status": True,
-                "status_code": SUCCESS_CODE["STANDARD"],
-                "data": temporary_password
+                "message": SERVER_ERROR["MESSAGE"],
+                "status": SERVER_ERROR["STATUS"],
+                "status_code": SERVER_ERROR["CODE"],
             }
         )
-    return Response(
-        {
-            "message": SERVER_ERROR["MESSAGE"],
-            "status": SERVER_ERROR["STATUS"],
-            "status_code": SERVER_ERROR["CODE"]
-        }
-    )
+    except (KeyError, TypeError) as error:
+        print("An KeyError or TypeError Occurred -> ", error)
+        logging.error("An KeyError or TypeError Occurred -> ", error)
+        return Response(
+            {
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
+            }
+        )
 
+    except AssertionError as error:
+        print("An AssertionError Occurred -> ", error)
+        logging.error("An AssertionError Occurred -> ", error)
+        return Response(
+            {
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
+            }
+        )
 
 @api_view(["POST"])
 def reset_password(request):
     print("api/reset_password()")
     REQUEST_BODY = json.loads(request.body)
 
-    USERNAME = REQUEST_BODY["username"]
-    NEW_PASSWORD = REQUEST_BODY["password"]
-
-    # check if there is a user session if not then return an unauthorized access
     try:
         # request.session['user']
 
+        USERNAME = REQUEST_BODY["username"]
+        NEW_PASSWORD = REQUEST_BODY["password"]
         USER = UserModel.objects.filter(username=USERNAME).first()
         if USER is not None:
             USER.password = make_password(
@@ -258,7 +361,7 @@ def reset_password(request):
             # save new password
             USER.save()
             # send email to user for successfully resetting password
-            subject = "Ideas GenteKaba Pro",
+            subject = ("Fax Service System Inc",)
             subject2 = "Do-not reply to this email!"
             message = "Password reset successfully!"
             reset_password_notify_user(
@@ -277,30 +380,31 @@ def reset_password(request):
                 "status_code": SERVER_ERROR["CODE"]
             }
         )
-    except KeyError as error:
+    except (KeyError, TypeError, ValueError) as error:
         print("api/reset_password, exception occurred -> ", error)
+        logging.error("An KeyrError, TypeError, ValueError", error)
         return Response(
             {
-                "message": UN_AUTHORIZED['MESSAGE'],
-                "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"]
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
             }
         )
-
 
 @api_view(["POST"])
 def update_user(request):
     print("api/update_user()")
 
-    REQUEST_BODY = json.loads(request.body)
-    DATA = REQUEST_BODY["data"]
-    token = REQUEST_BODY["token"]
     try:
-        isUser = decode_access_jwtoken(token)
-        if isUser:
-            USER = UserModel.objects.get(pk=isUser)
+        REQUEST_BODY = json.loads(request.body)
+        DATA = REQUEST_BODY["data"]
+        token = split_bearer_value(request.headers["Authorization"])
+        decoded_token = decode_access_jwtoken(token)
+        if decoded_token["isDecoded"]:
+            USER = UserModel.objects.get(user_id=decoded_token["payload"])
             serializer = UserSerializer(
-                UserModel.objects.filter(pk=isUser), many=True).data
+                UserModel.objects.filter(pk=isUser), many=True
+            ).data[0]
             if USER is not None:
                 print("found user")
                 for key, value in DATA.items():
@@ -312,24 +416,35 @@ def update_user(request):
                     {
                         "message": "SUCCESS",
                         "status": SUCCESS["STATUS"],
-                        "status_code": SUCCESS_CODE["STANDARD"]
+                        "status_code": SUCCESS_CODE["STANDARD"],
                     }
                 )
-            else:
-                return Response(
-                    {
-                        "message": f"It seems username {serializer[0]['username']} does not exists!",
-                        "status": SERVER_ERROR["MESSAGE"],
-                        "status_code": SERVER_ERROR["CODE"]
-                    }
-                )
-    except jwt.exceptions.DecodeError as error:
-        print('api/update_user() User not authenticated! -> ', error)
+        return Response(
+            {
+                "message": f"It seems username {serializer.username} does not exists!",
+                "status": SERVER_ERROR["STATUS"],
+                "status_code": SERVER_ERROR["CODE"],
+            }
+        )
+    except (KeyError, TypeError) as error:
+        print("An KeyError or TypeError Occurred -> ", error)
+        logging.error("logging error -> ", error)
+        return Response(
+            {
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
+            }
+        )
+
+    except (AssertionError, KeyError) as error:
+        print("An AssertionError Occurred -> ", error)
+        logging.error("logging error -> ", error)
         return Response(
             {
                 "message": UN_AUTHORIZED["MESSAGE"],
                 "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"]
+                "status_code": UN_AUTHORIZED["CODE"],
             }
         )
 
