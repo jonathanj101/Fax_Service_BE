@@ -44,71 +44,81 @@ def register_company(request):
     print("api.views.company.register_company()")
     REQUEST_BODY = json.loads(request.body)
 
-    COMPANY_DICT = {
-        "business_name": REQUEST_BODY["businessName"],
-        "business_street_address": REQUEST_BODY["businessStreetAddress"],
-        "business_registered_country": REQUEST_BODY["businessRegisteredCountry"],
-        "business_registered_city": REQUEST_BODY["businessRegisteredCity"],
-        "business_registered_zipcode": REQUEST_BODY["businessRegisteredZipcode"],
-        "business_contact_number": REQUEST_BODY["businessContactNumber"],
-        "business_email": REQUEST_BODY["businessEmail"],
-        "business_fax_number": REQUEST_BODY["businessFaxNumber"],
-        "business_owner": REQUEST_BODY["businessOwner"],
-        "business_type": REQUEST_BODY["businessType"],
-        "business_size": REQUEST_BODY["businessSize"],
-    }
     try:
-        token = REQUEST_BODY["token"]
+        token = split_bearer_value(request.headers["Authorization"])
+        COMPANY_DICT = {
+            "business_name": REQUEST_BODY["businessName"],
+            "business_street_address": REQUEST_BODY["businessStreetAddress"],
+            "business_registered_country": REQUEST_BODY["businessRegisteredCountry"],
+            "business_registered_city": REQUEST_BODY["businessRegisteredCity"],
+            "business_registered_zipcode": REQUEST_BODY["businessRegisteredZipcode"],
+            "business_contact_number": REQUEST_BODY["businessContactNumber"],
+            "business_email": REQUEST_BODY["businessEmail"],
+            "business_fax_number": REQUEST_BODY["businessFaxNumber"],
+            "business_owner": REQUEST_BODY["businessOwner"],
+            "business_type": REQUEST_BODY["businessType"],
+            "business_size": REQUEST_BODY["businessSize"],
+        }
 
         try:
-            isUser = decode_access_jwtoken(token)
-            user = UserModel.objects.filter(pk=isUser).first()
-            try:
-                COMPANY = CompanyModel(
-                    business_name=COMPANY_DICT["business_name"],
-                    business_street_address=COMPANY_DICT["business_street_address"],
-                    business_registered_country=COMPANY_DICT[
-                        "business_registered_country"
-                    ],
-                    business_registered_city=COMPANY_DICT["business_registered_city"],
-                    business_registered_zipcode=COMPANY_DICT[
-                        "business_registered_zipcode"
-                    ],
-                    business_contact_number=COMPANY_DICT["business_contact_number"],
-                    business_email=COMPANY_DICT["business_email"],
-                    business_fax_number=COMPANY_DICT["business_fax_number"],
-                    business_owner=user,
-                    business_type=COMPANY_DICT["business_type"],
-                    business_size=COMPANY_DICT["business_size"],
-                    # business_id="",
-                )
-                COMPANY.save()
-                serializer = CompanySerializer(
-                    CompanyModel.objects.filter(
-                        business_name=COMPANY_DICT["business_name"]
-                    ),
-                    many=True,
-                ).data
-                print(serializer)
-                return Response(
-                    {
-                        "message": f"Company {COMPANY_DICT['business_name']} has been created successfully!",
-                        "data": serializer,
-                        "status": SUCCESS["STATUS"],
-                        "status_code": SUCCESS_CODE["CREATED"],
-                    }
-                )
-            except Exception as exc:
-                print("An exception occurred -> ", exc)
-                logging.error(f"An Error Occurred -> ", exc)
-                return Response(
-                    {
-                        # "error": exc,
-                        "message": SERVER_ERROR["MESSAGE"],
-                        "status": SERVER_ERROR["STATUS"],
-                        "status_code": SERVER_ERROR["CODE"],
-                    }
-                )
+            decoded_token = decode_access_jwtoken(token)
+            if decoded_token["isDecoded"]:
+                USER = UserModel.objects.filter(
+                    user_id=decoded_token["payload"]
+                ).first()
+                if USER:
+                    try:
+                        COMPANY = CompanyModel(
+                            business_name=COMPANY_DICT["business_name"],
+                            business_street_address=COMPANY_DICT[
+                                "business_street_address"
+                            ],
+                            business_registered_country=COMPANY_DICT[
+                                "business_registered_country"
+                            ],
+                            business_registered_city=COMPANY_DICT[
+                                "business_registered_city"
+                            ],
+                            business_registered_zipcode=COMPANY_DICT[
+                                "business_registered_zipcode"
+                            ],
+                            business_contact_number=COMPANY_DICT[
+                                "business_contact_number"
+                            ],
+                            business_email=COMPANY_DICT["business_email"],
+                            business_fax_number=COMPANY_DICT["business_fax_number"],
+                            business_owner=USER,
+                            business_type=COMPANY_DICT["business_type"],
+                            business_size=COMPANY_DICT["business_size"],
+                            # business_id="",
+                        )
+                        COMPANY.save()
+                        serializer = CompanySerializer(
+                            CompanyModel.objects.filter(
+                                business_name=COMPANY_DICT["business_name"]
+                            ),
+                            many=True,
+                        ).data[0]
+                        print(serializer)
+                        return Response(
+                            {
+                                "message": f"Company {COMPANY_DICT['business_name']} has been created successfully!",
+                                "data": serializer,
+                                "status": SUCCESS["STATUS"],
+                                "status_code": SUCCESS_CODE["CREATED"],
+                            }
+                        )
+                    except Exception as exc:
+                        print("An exception occurred -> ", exc)
+                        logging.error(f"An Error Occurred -> ", exc)
+                        return Response(
+                            {
+                                # "error": exc,
+                                "message": SERVER_ERROR["MESSAGE"],
+                                "status": SERVER_ERROR["STATUS"],
+                                "status_code": SERVER_ERROR["CODE"],
+                            }
+                        )
         except jwt.exceptions.DecodeError as error:
             print("api.views.company_views.register_company()")
             logging.error("An Invalid Request Occurred", error)
@@ -120,7 +130,7 @@ def register_company(request):
                     "status_code": SERVER_ERROR["CODE"],
                 }
             )
-    except KeyError or TypeError as error:
+    except (KeyError, TypeError) as error:
         print("api.views.company_views.register_company()")
         logging.error("An Invalid Request Occurred", error)
         return Response(
