@@ -19,6 +19,7 @@ from api.utils.server_responses.http_responses import (
     SERVER_ERROR,
     UN_AUTHORIZED,
     FORBIDEN_ACCESS,
+    UNPROCESSIBLE_ENTITY,
 )
 
 # from api.utils.common.common import EMAIL_OWNER
@@ -148,14 +149,47 @@ def get_company(request, id):
     # print(request.headers["Authorization"])
     try:
         token = split_bearer_value(request.headers["Authorization"])
-        isUser = decode_access_jwtoken(token)
-        FILTER_COMPANY_ID = CompanySerializer(
-            CompanyModel.objects.filter(business_id=id), many=True
-        ).data
+        decoded_token = decode_access_jwtoken(token)
 
-        return Response({"data": FILTER_COMPANY_ID})
-        # do logic here
-    except KeyError or TypeError as error:
+        if decoded_token["isDecoded"]:
+            FILTER_COMPANY_ID = CompanySerializer(
+                CompanyModel.objects.filter(business_id=id), many=True
+            ).data
+            if FILTER_COMPANY_ID is not None:
+                return Response(
+                    {
+                        "message": "SUCCESS",
+                        "data": FILTER_COMPANY_ID,
+                        "status": SUCCESS["STATUS"],
+                        "status_code": SUCCESS_CODE["STANDARD"],
+                    }
+                )
+            return Response(
+                {
+                    "message": f"It seems that company does not exist within our record!",
+                    "status": SUCCESS["STATUS"],
+                    "status_code": SUCCESS_CODE["NOCONTENT"],
+                }
+            )
+        return Response(
+            {
+                "message": UN_AUTHORIZED["MESSAGE"],
+                "status": UN_AUTHORIZED["STATUS"],
+                "status_code": UN_AUTHORIZED["CODE"],
+            }
+        )
+
+    except (KeyError, TypeError) as error:
+        print("api.views.comapny_views.get_company()")
+        logging.error("An Invalid Request Occurred", error)
+        return Response(
+            {
+                "message": UN_AUTHORIZED["MESSAGE"],
+                "status": UN_AUTHORIZED["STATUS"],
+                "status_code": UN_AUTHORIZED["CODE"],
+            }
+        )
+    except (AssertionError, ValueError, AttributeError) as error:
         print("api.views.comapny_views.get_company()")
         logging.error("An Invalid Request Occurred", error)
         return Response(
@@ -174,8 +208,8 @@ def update_company(request, id):
     # print(request.headers)
     try:
         token = split_bearer_value(request.headers["Authorization"])
-        isUser = decode_access_jwtoken(token)
-        if isUser["isToken"]:
+        decoded_token = decode_access_jwtoken(token)
+        if decoded_token["isDecoded"]:
             COMPANY = CompanyModel.objects.get(business_id=id)
             FILTER_COMPANY_ID = CompanySerializer(
                 CompanyModel.objects.filter(business_id=id), many=True
@@ -209,7 +243,7 @@ def update_company(request, id):
                 }
             )
 
-    except KeyError or TypeError as error:
+    except (KeyError, TypeError) as error:
         logging.error("An Invalid Request Occurred", error)
         return Response(
             {
@@ -219,7 +253,7 @@ def update_company(request, id):
             }
         )
 
-    except AttributeError or AssertionError as error:
+    except (AttributeError, AssertionError) as error:
         logging.error("An Invalid Request Occurred", error)
         return Response(
             {
