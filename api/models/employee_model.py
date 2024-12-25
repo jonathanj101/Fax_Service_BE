@@ -17,9 +17,10 @@ class EmployeeModel(models.Model):
     company_id = models.UUIDField(
         primary_key=False, default="", editable=False, null=False
     )
+    status = models.CharField(
+        max_length=10, default="active", null=False, editable=True
+    )
     timestamp = models.DateField(blank=True, default=timezone.now)
 
     def __str__(self):
-        return (
-            f"(`{self.id}`,`{self.user_id}`, `{self.company_id}`, `{self.timestamp}`)"
-        )
+        return f"(`{self.id}`,`{self.user_id}`, `{self.company_id}`, `{self.status}` ,`{self.timestamp}`)"
