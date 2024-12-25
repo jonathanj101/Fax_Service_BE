@@ -58,13 +58,12 @@ def create_employee(request):
                 EMPLOYEE = EmployeeModel(
                     company_id=business.business_id, user_id=USER.user_id
                 )
-
+                print(type(business.business_id))
+                EMPLOYEE.save()
                 serializer = EmployeeSerializer(
                     EmployeeModel.objects.filter(company_id=business.business_id),
                     many=True,
-                ).data[0]
-
-                EMPLOYEE.save()
+                ).data
 
                 return Response(
                     {
@@ -85,6 +84,13 @@ def create_employee(request):
                         "status_code": SERVER_ERROR["CODE"],
                     }
                 )
+        return Response(
+            {
+                "message": UN_AUTHORIZED["MESSAGE"],
+                "status": UN_AUTHORIZED["STATUS"],
+                "status_code": UN_AUTHORIZED["CODE"],
+            }
+        )
 
     except (KeyError, TypeError) as error:
         logging.error("An Invalid Request Occurred", error)
@@ -149,3 +155,60 @@ def get_employees_by_company_id(request, company_id):
                 "status_code": UNPROCESSIBLE_ENTITY["CODE"],
             }
         )
+
+
+@api_view(["POST"])
+def update_employee_status(request, employee_id):
+    print("api.views.employee_views.update_employee_status()")
+    try:
+        DATA = json.loads(request.body)["data"]
+        token = split_bearer_value(request.headers["Authorization"])
+        decoded_token = decode_access_jwtoken(token)
+
+        if decoded_token["isDecoded"]:
+            EMPLOYEE = EmployeeModel.objects.get(user_id=employee_id)
+            if EMPLOYEE is not None:
+
+                for key, value in DATA.items():
+                    setattr(EMPLOYEE, key, value)
+                    EMPLOYEE.save()
+                    return Response(
+                        {
+                            "message": "SUCCESS",
+                            "status": SUCCESS["STATUS"],
+                            "status_code": SUCCESS_CODE["STANDARD"],
+                        }
+                    )
+
+    except (KeyError, TypeError) as error:
+        print("An KeyError or TypeError Occurred -> ", error)
+        logging.error("logging error -> ", error)
+        return Response(
+            {
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
+            }
+        )
+
+    except (AssertionError, ValueError, AttributeError) as error:
+        print("An AssertionError or ValueError, AttributeError Occurred -> ", error)
+        logging.error("logging error -> ", error)
+        return Response(
+            {
+                "message": UN_AUTHORIZED["MESSAGE"],
+                "status": UN_AUTHORIZED["STATUS"],
+                "status_code": UN_AUTHORIZED["CODE"],
+            }
+        )
+
+
+# testing view
+# @api_view(["GET"])
+# def get_employee_by_company_id(request, company_id):
+#     employee = EmployeeSerializer(
+#         EmployeeModel.objects.filter(company_id=uuid.UUID(company_id)), many=True
+#     ).data
+#     print(employee)
+
+#     return Response({"data": employee})
