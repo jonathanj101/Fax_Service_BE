@@ -58,8 +58,8 @@ def login(request):
                     UserModel.objects.filter(username=USER_OBJ["username"]), many=True
                 ).data[0]
 
-                secret_access = create_access_jwtoken(serializer.user_id)
-                secret_refresh = create_refresh_jwtoken(serializer.user_id)
+                secret_access = create_access_jwtoken(serializer["user_id"])
+                secret_refresh = create_refresh_jwtoken(serializer["user_id"])
 
                 response = Response()
                 response.set_cookie(
@@ -70,12 +70,12 @@ def login(request):
                 )
                 response.data = {
                     "message": "You Log In successfully!",
-                    "data": serializer[0],
+                    "data": serializer,
                     "status_code": SUCCESS_CODE["STANDARD"],
                     "status": SUCCESS["STATUS"],
                 }
 
-                response.headers = {"Authorization": secret_access}
+                response.headers = {"Authorization": secret_access["payload"]}
 
                 return response
         else:
@@ -97,8 +97,8 @@ def login(request):
             }
         )
 
-    except AssertionError as error:
-        print("An AssertionError Occurred -> ", error)
+    except (AssertionError, AttributeError) as error:
+        print("An AssertionError or AttributeError Occurred -> ", error)
         logging.error("logging error -> ", error)
         return Response(
             {
@@ -272,7 +272,7 @@ def get_logged_in_user_info(request):
             }
         )
 
-    except (AssertionError, KeyError) as error:
+    except (AssertionError, AttributeError) as error:
         print("An AssertionError Occurred -> ", error)
         logging.error("logging error -> ", error)
         return Response(
@@ -288,11 +288,6 @@ def forgot_password(request):
     print("api/forgot_password()")
     # get username from request body
     REQUEST_BODY = json.loads(request.body)
-    # filter user model with that username
-    # create session
-    request.session["user"] = uid.int
-    # set session expiration to 10 minutes only
-    request.session.set_expiry(600)
     try:
         USER = UserModel.objects.filter(username=REQUEST_BODY["username"]).first()
         if USER is not None:
@@ -380,7 +375,7 @@ def reset_password(request):
                 "status_code": SERVER_ERROR["CODE"]
             }
         )
-    except (KeyError, TypeError, ValueError) as error:
+    except (KeyError, TypeError, ValueError, AttributeError) as error:
         print("api/reset_password, exception occurred -> ", error)
         logging.error("An KeyrError, TypeError, ValueError", error)
         return Response(
@@ -394,9 +389,9 @@ def reset_password(request):
 @api_view(["POST"])
 def update_user(request):
     print("api/update_user()")
+    REQUEST_BODY = json.loads(request.body)
 
     try:
-        REQUEST_BODY = json.loads(request.body)
         DATA = REQUEST_BODY["data"]
         token = split_bearer_value(request.headers["Authorization"])
         decoded_token = decode_access_jwtoken(token)
@@ -437,8 +432,8 @@ def update_user(request):
             }
         )
 
-    except (AssertionError, KeyError) as error:
-        print("An AssertionError Occurred -> ", error)
+    except (AssertionError, ValueError, AttributeError) as error:
+        print("An AssertionError or ValueError, AttributeError Occurred -> ", error)
         logging.error("logging error -> ", error)
         return Response(
             {
