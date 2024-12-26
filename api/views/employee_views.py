@@ -33,64 +33,52 @@ load_dotenv()
 
 
 @api_view(["POST"])
-def create_employee(request):
+def create_employee(request, user_model):
     print("api.views.employee_views.create_employee()")
 
-    REQUEST_BODY = json.loads(request.body)
-
     try:
+        REQUEST_BODY = json.loads(request.body)
         DATA = {
             "business_id": REQUEST_BODY["companyId"],
-            "user_id": REQUEST_BODY["userId"],
+            "user_id": REQUEST_BODY["userId"],  # user model id, to grab user data
         }
-        token = split_bearer_value(request.headers["Authorization"])
-        decoded_token = decode_access_jwtoken(token)
-        if decoded_token["isDecoded"]:
 
-            try:
-                business = CompanyModel.objects.filter(
-                    business_id=DATA["business_id"]
-                ).first()
-                USER = UserModel.objects.filter(
-                    user_id=decoded_token["payload"]
-                ).first()
+        try:
+            business = CompanyModel.objects.filter(
+                business_id=DATA["business_id"]
+            ).first()
 
-                EMPLOYEE = EmployeeModel(
-                    company_id=business.business_id, user_id=USER.user_id
-                )
-                print(type(business.business_id))
-                EMPLOYEE.save()
-                serializer = EmployeeSerializer(
-                    EmployeeModel.objects.filter(company_id=business.business_id),
-                    many=True,
-                ).data
+            EMPLOYEE = EmployeeModel(
+                company_id=business.business_id, user_id=DATA["user_id"]
+            )
+            # print(type(business.business_id))
+            EMPLOYEE.save()
+            serializer = EmployeeSerializer(
+                EmployeeModel.objects.filter(
+                    company_id=business.business_id, user_id=DATA["user_id"]
+                ),
+                many=True,
+            ).data
 
-                return Response(
-                    {
-                        "message": "SUCCESS",
-                        "data": serializer,
-                        "status": SUCCESS["STATUS"],
-                        "status_code": SUCCESS_CODE["STANDARD"],
-                    }
-                )
+            return Response(
+                {
+                    "message": "SUCCESS",
+                    "data": serializer,
+                    "status": SUCCESS["STATUS"],
+                    "status_code": SUCCESS_CODE["STANDARD"],
+                }
+            )
 
-            except FieldError as error:
-                print("An exception occurred")
-                logging.error("An Invalid Request Occurred", error)
-                return Response(
-                    {
-                        "message": SERVER_ERROR["MESSAGE"],
-                        "status": SERVER_ERROR["STATUS"],
-                        "status_code": SERVER_ERROR["CODE"],
-                    }
-                )
-        return Response(
-            {
-                "message": UN_AUTHORIZED["MESSAGE"],
-                "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"],
-            }
-        )
+        except FieldError as error:
+            print("An exception occurred")
+            logging.error("An Invalid Request Occurred", error)
+            return Response(
+                {
+                    "message": SERVER_ERROR["MESSAGE"],
+                    "status": SERVER_ERROR["STATUS"],
+                    "status_code": SERVER_ERROR["CODE"],
+                }
+            )
 
     except (KeyError, TypeError) as error:
         logging.error("An Invalid Request Occurred", error)
@@ -114,16 +102,15 @@ def create_employee(request):
 
 
 @api_view(["GET"])
-def get_employees_by_company_id(request, company_id):
+def get_employees_by_company_id(request):
     print("api.views.employee_views.get_employee_by_company_id()")
     try:
-        token = split_bearer_value(request.headers["Authorization"])
-        decode_token = decode_access_jwtoken(token)
+        DATA = json.loads(requesst.body)["data"]
         EMPLOYEES = EmployeeModel.objects.filter(
-            company_id=uuid.UUID(company_id)
+            company_id=uuid.UUID(DATA["company_id"])
         ).first()
         serializer = EmployeeSerializer(
-            EmployeeModel.objects.filter(company_id=company_id), many=True
+            EmployeeModel.objects.filter(company_id=DATA["company_id"]), many=True
         ).data
 
         return Response(
@@ -158,27 +145,25 @@ def get_employees_by_company_id(request, company_id):
 
 
 @api_view(["POST"])
-def update_employee_status(request, employee_id):
+def update_employee_status(request, USER):
     print("api.views.employee_views.update_employee_status()")
     try:
         DATA = json.loads(request.body)["data"]
-        token = split_bearer_value(request.headers["Authorization"])
-        decoded_token = decode_access_jwtoken(token)
+        user_id = DATA["user_id"]
+        update_data = DATA["update_data"]
+        EMPLOYEE = EmployeeModel.objects.get(user_id=user_id)
+        if EMPLOYEE is not None:
 
-        if decoded_token["isDecoded"]:
-            EMPLOYEE = EmployeeModel.objects.get(user_id=employee_id)
-            if EMPLOYEE is not None:
-
-                for key, value in DATA.items():
-                    setattr(EMPLOYEE, key, value)
-                    EMPLOYEE.save()
-                    return Response(
-                        {
-                            "message": "SUCCESS",
-                            "status": SUCCESS["STATUS"],
-                            "status_code": SUCCESS_CODE["STANDARD"],
-                        }
-                    )
+            for key, value in update_data.items():
+                setattr(EMPLOYEE, key, value)
+                EMPLOYEE.save()
+                return Response(
+                    {
+                        "message": "SUCCESS",
+                        "status": SUCCESS["STATUS"],
+                        "status_code": SUCCESS_CODE["STANDARD"],
+                    }
+                )
 
     except (KeyError, TypeError) as error:
         print("An KeyError or TypeError Occurred -> ", error)
