@@ -1,5 +1,6 @@
 # contrib
 from rest_framework.decorators import api_view
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password, check_password
 from dotenv import load_dotenv
@@ -37,6 +38,7 @@ load_dotenv()
 
 
 @api_view(["OPTIONS", "PUT"])
+@ensure_csrf_cookie
 def login(request):
     print("api.views.user.login")
 
@@ -58,16 +60,19 @@ def login(request):
                     UserModel.objects.filter(username=USER_OBJ["username"]), many=True
                 ).data[0]
 
-                secret_access = create_access_jwtoken(serializer["user_id"])
-                secret_refresh = create_refresh_jwtoken(serializer["user_id"])
+                secret_access = create_access_jwtoken(serializer["user_id"])["payload"]
+                secret_refresh = create_refresh_jwtoken(serializer["user_id"])[
+                    "payload"
+                ]
 
                 response = Response()
-                response.set_cookie(
-                    key="secret_refresh",
-                    value=secret_refresh,
-                    httponly=True,
-                    samesite="None",
-                )
+                # response.set_cookie(
+                #     key="secret_refresh",
+                #     value=secret_refresh,
+                #     httponly=True,
+                #      samesite="None",
+                # )
+                # response.set_cookie("csrftoken", secret_refresh)
                 response.data = {
                     "message": "You Log In successfully!",
                     "data": serializer,
@@ -75,7 +80,12 @@ def login(request):
                     "status": SUCCESS["STATUS"],
                 }
 
-                response.headers = {"Authorization": secret_access["payload"]}
+                response.headers = {
+                    "Authorization": secret_access,
+                    # "X-CSRFToken": secret_refresh,
+                }
+                print(response)
+                # print(response.COOKIES)
 
                 return response
         else:
@@ -120,7 +130,7 @@ def log_out(request):
         "status": SUCCESS["STATUS"]
     }
 
-    response.headers = ""
+    response.headers["Authorization"] = ""
 
     return response
 
@@ -231,36 +241,23 @@ def register(request):
             }
         )
 
+
 # need re-work logic with recently updated jwt auth logic
 @api_view(["GET"])
-def get_logged_in_user_info(request):
+def get_logged_in_user_info(request, user_model):  # data = user model from middleware
     print("api.get_logged_in_info()")
-
-    REQUEST_BODY = json.loads(request.body)
-
     try:
-        token = split_bearer_value(request.headers["Authorization"])
-        decoded_token = decode_access_jwtoken(token)
-        # user = User.objects.filter(pk=isUser).first()
-        # if (user is not None):
-        if decoded_token["isDecoded"]:
-            print("found user")
-            serializer = UserSerializer(
-                UserModel.objects.filter(pk=decoded_token["payload"]), many=True
-            ).data[0]
-            # USER_OBJ['first_name'] = user.first_name
-            # USER_OBJ['last_name'] = user.last_name
-            # USER_OBJ['email'] = user.email
-            # USER_OBJ['role'] = user.role
-            # USER_OBJ['bookings'] = user.bookings
+        serializer = UserSerializer(
+            UserModel.objects.filter(user_id=user_model.user_id), many=True
+        ).data[0]
 
-            return Response(
-                {
-                    "status_code": SUCCESS_CODE["ACCEPTED"],
-                    "status": SUCCESS["STATUS"],
-                    "data": serializer,
-                }
-            )
+        return Response(
+            {
+                "status_code": SUCCESS_CODE["ACCEPTED"],
+                "status": SUCCESS["STATUS"],
+                "data": serializer,
+            }
+        )
     except (KeyError, TypeError) as error:
         print("An KeyError or TypeError Occurred -> ", error)
         logging.error("logging error -> ", error)
@@ -282,6 +279,7 @@ def get_logged_in_user_info(request):
                 "status_code": UN_AUTHORIZED["CODE"],
             }
         )
+
 
 @api_view(["POST"])
 def forgot_password(request):
@@ -386,37 +384,38 @@ def reset_password(request):
             }
         )
 
+
 @api_view(["POST"])
-def update_user(request):
+@ensure_csrf_cookie
+def update_user(request, user_model):
     print("api/update_user()")
-    REQUEST_BODY = json.loads(request.body)
-
     try:
+        REQUEST_BODY = json.loads(request.body)
         DATA = REQUEST_BODY["data"]
-        token = split_bearer_value(request.headers["Authorization"])
-        decoded_token = decode_access_jwtoken(token)
-        if decoded_token["isDecoded"]:
-            USER = UserModel.objects.get(user_id=decoded_token["payload"])
-            serializer = UserSerializer(
-                UserModel.objects.filter(pk=isUser), many=True
-            ).data[0]
-            if USER is not None:
-                print("found user")
-                for key, value in DATA.items():
-                    # print(key, value)
-                    setattr(USER, key, value)
-                    USER.save()
+        user_id = DATA["user_id"]
+        update_data = DATA["update_data"]
 
-                return Response(
-                    {
-                        "message": "SUCCESS",
-                        "status": SUCCESS["STATUS"],
-                        "status_code": SUCCESS_CODE["STANDARD"],
-                    }
-                )
+        USER = UserModel.objects.get(user_id=DATA["user_id"])
+        if USER is not None:
+
+            print("found user")
+            for key, value in update_data.items():
+                # print(key, value)
+                setattr(USER, key, value)
+                USER.save()
+            serializer = UserSerializer(
+                UserModel.objects.filter(user_id=user_model.user_id), many=True
+            ).data[0]
+            return Response(
+                {
+                    "message": "SUCCESS",
+                    "status": SUCCESS["STATUS"],
+                    "status_code": SUCCESS_CODE["STANDARD"],
+                }
+            )
         return Response(
             {
-                "message": f"It seems username {serializer.username} does not exists!",
+                "message": f"It seems that user does not exists within our database!",
                 "status": SERVER_ERROR["STATUS"],
                 "status_code": SERVER_ERROR["CODE"],
             }
@@ -442,6 +441,7 @@ def update_user(request):
                 "status_code": UN_AUTHORIZED["CODE"],
             }
         )
+
 
 # would need to brainstorm this approach
 # @api_view(["POST"])
