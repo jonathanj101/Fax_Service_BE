@@ -443,6 +443,57 @@ def update_user(request, user_model):
         )
 
 
+@api_view(["GET"])
+@ensure_csrf_cookie
+def get_user_by_email(request, user_model):
+    print("api.views.user_view.get_user_by_email()")
+    try:
+        REQUEST_BODY = json.loads(request.body)
+        DATA = REQUEST_BODY["data"]
+
+        USER = UserModel.objects.get(email=DATA["email"])
+        if USER is not None:
+            serializer = UserSerializer(
+                UserModel.objects.filter(email=USER.email), many=True
+            ).data[0]
+            return Response(
+                {
+                    "message": "SUCCESS",
+                    "data": serializer,
+                    "status": SUCCESS["STATUS"],
+                    "status_code": SUCCESS_CODE["STANDARD"],
+                }
+            )
+        return Response(
+            {
+                "message": f"It seems that user does not exists within our database!",
+                "status": SERVER_ERROR["STATUS"],
+                "status_code": SERVER_ERROR["CODE"],
+            }
+        )
+    except (KeyError, TypeError) as error:
+        print("An KeyError or TypeError Occurred -> ", error)
+        logging.error("logging error -> ", error)
+        return Response(
+            {
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
+            }
+        )
+
+    except (AssertionError, ValueError, AttributeError) as error:
+        print("An AssertionError or ValueError, AttributeError Occurred -> ", error)
+        logging.error("logging error -> ", error)
+        return Response(
+            {
+                "message": UN_AUTHORIZED["MESSAGE"],
+                "status": UN_AUTHORIZED["STATUS"],
+                "status_code": UN_AUTHORIZED["CODE"],
+            }
+        )
+
+
 # would need to brainstorm this approach
 # @api_view(["POST"])
 # def upload_image(request):
