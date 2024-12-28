@@ -1,6 +1,15 @@
 from django.urls import path, include
-from api.middleware.auth import auth_middleware
-from api.views.user_views import login, log_out, register, get_logged_in_user_info, forgot_password,reset_password,update_user
+from api.middleware.auth import auth_middleware, leads_auth_middleware
+from api.views.user_views import (
+    login,
+    log_out,
+    register,
+    get_logged_in_user_info,
+    forgot_password,
+    reset_password,
+    update_user,
+    get_user_by_email,
+)
 
 
 urlpatterns = [
@@ -11,4 +20,5 @@ urlpatterns = [
     path("forgot-password", forgot_password),
     path("reset-password", reset_password),
     path("update-user", auth_middleware(update_user)),
+    path("get-user-by-email", leads_auth_middleware(get_user_by_email)),
 ]
