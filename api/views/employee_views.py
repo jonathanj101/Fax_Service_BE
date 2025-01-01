@@ -65,8 +65,8 @@ def create_employee(request, user_model):
                     "message": "SUCCESS",
                     "data": serializer,
                     "status": SUCCESS["STATUS"],
-                    "status_code": SUCCESS_CODE["STANDARD"],
-                }
+                },
+                status=SUCCESS_CODE["STANDARD"],
             )
 
         except FieldError as error:
@@ -76,8 +76,8 @@ def create_employee(request, user_model):
                 {
                     "message": SERVER_ERROR["MESSAGE"],
                     "status": SERVER_ERROR["STATUS"],
-                    "status_code": SERVER_ERROR["CODE"],
-                }
+                },
+                status=SERVER_ERROR["CODE"],
             )
 
     except (KeyError, TypeError) as error:
@@ -86,8 +86,8 @@ def create_employee(request, user_model):
             {
                 "message": UN_AUTHORIZED["MESSAGE"],
                 "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"],
-            }
+            },
+            status=UN_AUTHORIZED["CODE"],
         )
 
     except (AttributeError, AssertionError) as error:
@@ -96,8 +96,8 @@ def create_employee(request, user_model):
             {
                 "message": SERVER_ERROR["MESSAGE"],
                 "status": SERVER_ERROR["STATUS"],
-                "status_code": SERVER_ERROR["CODE"],
             },
+            status=SERVER_ERROR["CODE"],
         )
 
 
@@ -118,8 +118,8 @@ def get_employees_by_company_id(request):
                 "message": "SUCCESS",
                 "data": serializer,
                 "status": SUCCESS["STATUS"],
-                "status_code": SUCCESS_CODE["STANDARD"],
-            }
+            },
+            status=SUCCESS_CODE["STANDARD"],
         )
         # to do - > need more errors handling
     except (KeyError, TypeError) as error:
@@ -129,8 +129,8 @@ def get_employees_by_company_id(request):
             {
                 "message": UN_AUTHORIZED["MESSAGE"],
                 "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"],
-            }
+            },
+            status=UN_AUTHORIZED["CODE"],
         )
     except ValueError as error:
         logging.error("An Error Occurred -> ", error)
@@ -139,8 +139,8 @@ def get_employees_by_company_id(request):
             {
                 "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
                 "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-            }
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
 
@@ -161,8 +161,8 @@ def update_employee_status(request, USER):
                     {
                         "message": "SUCCESS",
                         "status": SUCCESS["STATUS"],
-                        "status_code": SUCCESS_CODE["STANDARD"],
-                    }
+                    },
+                    status=SUCCESS_CODE["STANDARD"],
                 )
 
     except (KeyError, TypeError) as error:
@@ -172,8 +172,8 @@ def update_employee_status(request, USER):
             {
                 "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
                 "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-            }
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
     except (AssertionError, ValueError, AttributeError) as error:
@@ -183,8 +183,8 @@ def update_employee_status(request, USER):
             {
                 "message": UN_AUTHORIZED["MESSAGE"],
                 "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"],
-            }
+            },
+            status=UN_AUTHORIZED["CODE"],
         )
 
 

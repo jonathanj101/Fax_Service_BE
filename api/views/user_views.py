@@ -43,6 +43,7 @@ def login(request):
     print("api.views.user.login")
 
     REQUEST_BODY = json.loads(request.body)
+    print(request.headers)
 
     try:
         USER_OBJ = {
@@ -74,11 +75,12 @@ def login(request):
                 # )
                 # response.set_cookie("csrftoken", secret_refresh)
                 response.data = {
-                    "message": "You Log In successfully!",
+                    "message": "You're Logged In Successfully!",
                     "data": serializer,
-                    "status_code": SUCCESS_CODE["STANDARD"],
                     "status": SUCCESS["STATUS"],
                 }
+
+                response.status_code = SUCCESS_CODE["STANDARD"]
 
                 response.headers = {
                     "Authorization": secret_access,
@@ -92,9 +94,9 @@ def login(request):
             return Response(
                 {
                     "message": f" The username/password  you entered, does not exis within our record! Please try again!",
-                    "status_code": SUCCESS["CODE"]["STANDARD"],
-                    "status": SUCCESS["STATUS"],
-                }
+                    "status": UN_AUTHORIZED["STATUS"],
+                },
+                status=SUCCESS["CODE"]["STANDARD"],
             )
     except (KeyError, TypeError) as error:
         print("An KeyError or TypeError Occurred -> ", error)
@@ -103,8 +105,8 @@ def login(request):
             {
                 "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
                 "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-            }
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
     except (AssertionError, AttributeError) as error:
@@ -114,24 +116,24 @@ def login(request):
             {
                 "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
                 "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-            }
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
 @api_view(["PUT"])
 def log_out(request):
     print("api.views.user.log_out()")
-    # print(request.COOKIES)
+    print(request.COOKIES)
     response = Response()
-    response.delete_cookie(key="secret_refresh", samesite="None")
+    response.delete_cookie(key="csrftoken", samesite="None")
     response.data = {
         "message": "You successfully logged out!",
         "status_code": SUCCESS_CODE["STANDARD"],
-        "status": SUCCESS["STATUS"]
     }
+    response.status_code = SUCCESS["STATUS"]
 
     response.headers["Authorization"] = ""
-
+    print(request.COOKIES)
     return response
 
 @api_view(['PUT', 'POST'])
@@ -166,9 +168,9 @@ def register(request):
             return Response(
                 {
                     "message": f"{USER_OBJ['username']} is already taken. Please choose another username.",
-                    "status_code": SERVER_ERROR["CODE"],
                     "status": SERVER_ERROR["STATUS"],
-                }
+                },
+                status=SERVER_ERROR["CODE"],
             )
 
         elif FILTER_BY_EMAIL is not None:
@@ -176,9 +178,9 @@ def register(request):
             return Response(
                 {
                     "message": f"{USER_OBJ['email']} is already taken. Please choose another email.",
-                    "status_code": SERVER_ERROR["CODE"],
                     "status": SERVER_ERROR["STATUS"],
-                }
+                },
+                status=SERVER_ERROR["CODE"],
             )
 
         elif FILTER_BY_EMAIL and FILTER_BY_USERNAME is not None:
@@ -186,9 +188,9 @@ def register(request):
             return Response(
                 {
                     "message": f"username {USER_OBJ['username']} and e-mail {USER_OBJ['email']} are both taken. Please choose another username/email.",
-                    "status_code": SERVER_ERROR["CODE"],
                     "status": SERVER_ERROR["STATUS"],
-                }
+                },
+                status=SERVER_ERROR["CODE"],
             )
 
         else:
@@ -213,10 +215,10 @@ def register(request):
             return Response(
                 {
                     "message": f"User {USER_OBJ['first_name']} {USER_OBJ['last_name']} has been created successfully!",
-                    "status_code": SUCCESS_CODE["CREATED"],
-                    "status": SUCCESS["STATUS"],
                     "data": serializer,
-                }
+                    "status": SUCCESS["STATUS"],
+                },
+                status=SUCCESS_CODE["CREATED"],
             )
 
     except (KeyError, TypeError) as error:
@@ -226,8 +228,8 @@ def register(request):
             {
                 "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
                 "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-            }
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
     except AssertionError as error:
@@ -237,8 +239,8 @@ def register(request):
             {
                 "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
                 "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-            }
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
 
@@ -253,10 +255,11 @@ def get_logged_in_user_info(request, user_model):  # data = user model from midd
 
         return Response(
             {
-                "status_code": SUCCESS_CODE["ACCEPTED"],
-                "status": SUCCESS["STATUS"],
+                "message": "SUCCESS",
                 "data": serializer,
-            }
+                "status": SUCCESS["STATUS"],
+            },
+            status=SUCCESS_CODE["ACCEPTED"],
         )
     except (KeyError, TypeError) as error:
         print("An KeyError or TypeError Occurred -> ", error)
@@ -265,8 +268,8 @@ def get_logged_in_user_info(request, user_model):  # data = user model from midd
             {
                 "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
                 "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-            }
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
     except (AssertionError, AttributeError) as error:
@@ -276,8 +279,8 @@ def get_logged_in_user_info(request, user_model):  # data = user model from midd
             {
                 "message": UN_AUTHORIZED["MESSAGE"],
                 "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"],
-            }
+            },
+            status=UN_AUTHORIZED["CODE"],
         )
 
 
@@ -285,8 +288,8 @@ def get_logged_in_user_info(request, user_model):  # data = user model from midd
 def forgot_password(request):
     print("api/forgot_password()")
     # get username from request body
-    REQUEST_BODY = json.loads(request.body)
     try:
+        REQUEST_BODY = json.loads(request.body)
         USER = UserModel.objects.filter(username=REQUEST_BODY["username"]).first()
         if USER is not None:
             # We want to generate temporary password
@@ -303,17 +306,17 @@ def forgot_password(request):
             return Response(
                 {
                     "message": "RESET_PASSWORD",
-                    "status": True,
-                    "status_code": SUCCESS_CODE["STANDARD"],
                     "data": temporary_password,
-                }
+                    "status": True,
+                },
+                status=SUCCESS_CODE["STANDARD"],
             )
         return Response(
             {
                 "message": SERVER_ERROR["MESSAGE"],
                 "status": SERVER_ERROR["STATUS"],
-                "status_code": SERVER_ERROR["CODE"],
-            }
+            },
+            status=SERVER_ERROR["CODE"],
         )
     except (KeyError, TypeError) as error:
         print("An KeyError or TypeError Occurred -> ", error)
@@ -322,8 +325,8 @@ def forgot_password(request):
             {
                 "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
                 "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-            }
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
     except AssertionError as error:
@@ -333,8 +336,18 @@ def forgot_password(request):
             {
                 "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
                 "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-            }
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
+        )
+    except Exception as error:
+        print("An Unexpected Exceoption Occurred -> ", error)
+        logging.error("An AssertionError Occurred -> ", error)
+        return Response(
+            {
+                "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                "status": UNPROCESSIBLE_ENTITY["STATUS"],
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
 @api_view(["POST"])
@@ -363,15 +376,15 @@ def reset_password(request):
                 {
                     "message": "SUCCESS",
                     "status": SUCCESS["STATUS"],
-                    "status_code": SUCCESS_CODE["STANDARD"],
-                }
+                },
+                status=SUCCESS_CODE["STANDARD"],
             )
         return Response(
             {
                 "message": f"{USERNAME} is not found!",
                 "status": SERVER_ERROR["STATUS"],
-                "status_code": SERVER_ERROR["CODE"]
-            }
+            },
+            status=SERVER_ERROR["CODE"],
         )
     except (KeyError, TypeError, ValueError, AttributeError) as error:
         print("api/reset_password, exception occurred -> ", error)
@@ -380,8 +393,8 @@ def reset_password(request):
             {
                 "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
                 "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-            }
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
 
@@ -410,15 +423,15 @@ def update_user(request, user_model):
                 {
                     "message": "SUCCESS",
                     "status": SUCCESS["STATUS"],
-                    "status_code": SUCCESS_CODE["STANDARD"],
-                }
+                },
+                status=SUCCESS_CODE["STANDARD"],
             )
         return Response(
             {
                 "message": f"It seems that user does not exists within our database!",
                 "status": SERVER_ERROR["STATUS"],
-                "status_code": SERVER_ERROR["CODE"],
-            }
+            },
+            status=SERVER_ERROR["CODE"],
         )
     except (KeyError, TypeError) as error:
         print("An KeyError or TypeError Occurred -> ", error)
@@ -427,8 +440,8 @@ def update_user(request, user_model):
             {
                 "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
                 "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-            }
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
     except (AssertionError, ValueError, AttributeError) as error:
@@ -438,8 +451,8 @@ def update_user(request, user_model):
             {
                 "message": UN_AUTHORIZED["MESSAGE"],
                 "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"],
-            }
+            },
+            status=UN_AUTHORIZED["CODE"],
         )
 
 
@@ -461,15 +474,15 @@ def get_user_by_email(request, user_model):
                     "message": "SUCCESS",
                     "data": serializer,
                     "status": SUCCESS["STATUS"],
-                    "status_code": SUCCESS_CODE["STANDARD"],
-                }
+                },
+                status=SUCCESS_CODE["STANDARD"],
             )
         return Response(
             {
                 "message": f"It seems that user does not exists within our database!",
                 "status": SERVER_ERROR["STATUS"],
-                "status_code": SERVER_ERROR["CODE"],
-            }
+            },
+            status=SERVER_ERROR["CODE"],
         )
     except (KeyError, TypeError) as error:
         print("An KeyError or TypeError Occurred -> ", error)
@@ -478,8 +491,8 @@ def get_user_by_email(request, user_model):
             {
                 "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
                 "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-            }
+            },
+            status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
     except (AssertionError, ValueError, AttributeError) as error:
@@ -489,8 +502,8 @@ def get_user_by_email(request, user_model):
             {
                 "message": UN_AUTHORIZED["MESSAGE"],
                 "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"],
-            }
+            },
+            status=UN_AUTHORIZED["CODE"],
         )
 
 

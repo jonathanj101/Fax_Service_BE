@@ -39,16 +39,18 @@ def auth_middleware(get_response):
                         {
                             "message": UN_AUTHORIZED["MESSAGE"],
                             "status": UN_AUTHORIZED["STATUS"],
-                            "status_code": UN_AUTHORIZED["CODE"],
-                        }
+                            # "status_code": UN_AUTHORIZED["CODE"],
+                        },
+                        status=UN_AUTHORIZED["CODE"],
                     )
                 else:
                     return JsonResponse(
                         {
                             "message": UN_AUTHORIZED["MESSAGE"],
                             "status": UN_AUTHORIZED["STATUS"],
-                            "status_code": UN_AUTHORIZED["CODE"],
-                        }
+                            # "status_code": UN_AUTHORIZED["CODE"],
+                        },
+                        status=UN_AUTHORIZED["CODE"],
                     )
                     # return Response(
                     #     {
@@ -74,8 +76,9 @@ def auth_middleware(get_response):
                 {
                     "message": UN_AUTHORIZED["MESSAGE"],
                     "status": UN_AUTHORIZED["STATUS"],
-                    "status_code": UN_AUTHORIZED["CODE"],
-                }
+                    # "status_code": UN_AUTHORIZED["CODE"],
+                },
+                status=UN_AUTHORIZED["CODE"],
             )
 
         except (
@@ -85,12 +88,11 @@ def auth_middleware(get_response):
             logging.error("Unexpected error occurred in auth middleware")
             return JsonResponse(
                 {
-                    {
-                        "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
-                        "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                        "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-                    }
-                }
+                    "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                    "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                    # "status_code": UNPROCESSIBLE_ENTITY["CODE"],
+                },
+                status=UNPROCESSIBLE_ENTITY["CODE"],
             )
         except Exception as error:
             logging.error("Unexpected error occurred in auth middleware", exc_info=True)
@@ -106,8 +108,9 @@ def auth_middleware(get_response):
                 {
                     "message": UN_AUTHORIZED["MESSAGE"],
                     "status": UN_AUTHORIZED["STATUS"],
-                    "status_code": UN_AUTHORIZED["CODE"],
-                }
+                    # "status_code": UN_AUTHORIZED["CODE"],
+                },
+                status=UN_AUTHORIZED["CODE"],
             )
 
     return wrapped_view
@@ -134,15 +137,17 @@ def admin_auth_middleware(get_response):
                         {
                             "message": UN_AUTHORIZED["MESSAGE"],
                             "status": UN_AUTHORIZED["STATUS"],
-                            "status_code": UN_AUTHORIZED["CODE"],
-                        }
+                            # "status_code": UN_AUTHORIZED["CODE"],
+                        },
+                        status=UN_AUTHORIZED["CODE"],
                     )
                 return JsonResponse(
                     {
                         "message": UN_AUTHORIZED["MESSAGE"],
                         "status": UN_AUTHORIZED["STATUS"],
-                        "status_code": UN_AUTHORIZED["CODE"],
-                    }
+                        # "status_code": UN_AUTHORIZED["CODE"],
+                    },
+                    status=UN_AUTHORIZED["CODE"],
                 )
         except KeyError as error:
             logging.error("KeyError Occurred ", error)
@@ -160,8 +165,9 @@ def admin_auth_middleware(get_response):
                 {
                     "message": UN_AUTHORIZED["MESSAGE"],
                     "status": UN_AUTHORIZED["STATUS"],
-                    "status_code": UN_AUTHORIZED["CODE"],
-                }
+                    # "status_code": UN_AUTHORIZED["CODE"],
+                },
+                status=UN_AUTHORIZED["CODE"],
             )
 
         except (
@@ -171,12 +177,11 @@ def admin_auth_middleware(get_response):
             logging.error("Unexpected error occurred in auth middleware")
             return JsonResponse(
                 {
-                    {
-                        "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
-                        "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                        "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-                    }
-                }
+                    "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                    "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                    # "status_code": UNPROCESSIBLE_ENTITY["CODE"],
+                },
+                status=UNPROCESSIBLE_ENTITY["CODE"],
             )
         except Exception as error:
             logging.error("Unexpected error occurred in auth middleware", exc_info=True)
@@ -192,8 +197,9 @@ def admin_auth_middleware(get_response):
                 {
                     "message": UN_AUTHORIZED["MESSAGE"],
                     "status": UN_AUTHORIZED["STATUS"],
-                    "status_code": UN_AUTHORIZED["CODE"],
-                }
+                    # "status_code": UN_AUTHORIZED["CODE"],
+                },
+                status=UN_AUTHORIZED["CODE"],
             )
 
     return wrapped_view
@@ -205,7 +211,7 @@ def leads_auth_middleware(get_response):
 
     def wrapped_view(request):
         try:
-            if request.headers["Authorization"]:
+            if request.headers["Authorization"] and request.headers["X-CSRFToken"]:
                 token = split_bearer_value(request.headers["Authorization"])
                 decoded_token = decode_access_jwtoken(token)
                 if decoded_token["isDecoded"]:
@@ -221,23 +227,26 @@ def leads_auth_middleware(get_response):
                                 {
                                     "message": UN_AUTHORIZED["MESSAGE"],
                                     "status": UN_AUTHORIZED["STATUS"],
-                                    "status_code": UN_AUTHORIZED["CODE"],
-                                }
+                                    # "status_code": UN_AUTHORIZED["CODE"],
+                                },
+                                status=UN_AUTHORIZED["CODE"],
                             )
                     #   un authenticated user
                     return JsonResponse(
                         {
                             "message": UN_AUTHORIZED["MESSAGE"],
                             "status": UN_AUTHORIZED["STATUS"],
-                            "status_code": UN_AUTHORIZED["CODE"],
-                        }
+                            # "status_code": UN_AUTHORIZED["CODE"],
+                        },
+                        status=UN_AUTHORIZED["CODE"],
                     )
                 return JsonResponse(
                     {
                         "message": UN_AUTHORIZED["MESSAGE"],
                         "status": UN_AUTHORIZED["STATUS"],
-                        "status_code": UN_AUTHORIZED["CODE"],
-                    }
+                        # "status_code": UN_AUTHORIZED["CODE"],
+                    },
+                    status=UN_AUTHORIZED["CODE"],
                 )
         except KeyError as error:
             logging.error("KeyError Occurred ", error)
@@ -255,8 +264,9 @@ def leads_auth_middleware(get_response):
                 {
                     "message": UN_AUTHORIZED["MESSAGE"],
                     "status": UN_AUTHORIZED["STATUS"],
-                    "status_code": UN_AUTHORIZED["CODE"],
-                }
+                    # "status_code": UN_AUTHORIZED["CODE"],
+                },
+                status=UN_AUTHORIZED["CODE"],
             )
 
         except (
@@ -266,12 +276,11 @@ def leads_auth_middleware(get_response):
             logging.error("Unexpected error occurred in auth middleware")
             return JsonResponse(
                 {
-                    {
-                        "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
-                        "status": UNPROCESSIBLE_ENTITY["STATUS"],
-                        "status_code": UNPROCESSIBLE_ENTITY["CODE"],
-                    }
-                }
+                    "message": UNPROCESSIBLE_ENTITY["MESSAGE"],
+                    "status": UNPROCESSIBLE_ENTITY["STATUS"],
+                    # "status_code": UNPROCESSIBLE_ENTITY["CODE"],
+                },
+                status=UNPROCESSIBLE_ENTITY["CODE"],
             )
         except Exception as error:
             logging.error("Unexpected error occurred in auth middleware", exc_info=True)
@@ -287,8 +296,9 @@ def leads_auth_middleware(get_response):
                 {
                     "message": UN_AUTHORIZED["MESSAGE"],
                     "status": UN_AUTHORIZED["STATUS"],
-                    "status_code": UN_AUTHORIZED["CODE"],
-                }
+                    # "status_code": UN_AUTHORIZED["CODE"],
+                },
+                status=UN_AUTHORIZED["CODE"],
             )
 
     return wrapped_view
