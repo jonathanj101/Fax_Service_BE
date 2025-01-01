@@ -99,8 +99,8 @@ def register_company(request, user_model):
                             "message": f"Company {COMPANY_DICT['business_name']} has been created successfully!",
                             "data": serializer,
                             "status": SUCCESS["STATUS"],
-                            "status_code": SUCCESS_CODE["CREATED"],
-                        }
+                        },
+                        status=SUCCESS_CODE["CREATED"],
                     )
                 except Exception as exc:
                     print("An exception occurred -> ", exc)
@@ -110,8 +110,8 @@ def register_company(request, user_model):
                             # "error": exc,
                             "message": SERVER_ERROR["MESSAGE"],
                             "status": SERVER_ERROR["STATUS"],
-                            "status_code": SERVER_ERROR["CODE"],
-                        }
+                        },
+                        status=SERVER_ERROR["CODE"],
                     )
         except jwt.exceptions.DecodeError as error:
             print("api.views.company_views.register_company()")
@@ -121,8 +121,8 @@ def register_company(request, user_model):
                     "error": error.user.message,
                     "message": SERVER_ERROR["MESSAGE"],
                     "status": SERVER_ERROR["STATUS"],
-                    "status_code": SERVER_ERROR["CODE"],
-                }
+                },
+                status=SERVER_ERROR["CODE"],
             )
     except (KeyError, TypeError) as error:
         print("api.views.company_views.register_company()")
@@ -131,8 +131,8 @@ def register_company(request, user_model):
             {
                 "message": UN_AUTHORIZED["MESSAGE"],
                 "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"],
-            }
+            },
+            status=UN_AUTHORIZED["CODE"],
         )
 
 
@@ -152,15 +152,15 @@ def get_company(request, user_model):
                     "message": "SUCCESS",
                     "data": FILTER_COMPANY_ID,
                     "status": SUCCESS["STATUS"],
-                    "status_code": SUCCESS_CODE["STANDARD"],
-                }
+                },
+                status=SUCCESS_CODE["STANDARD"],
             )
         return Response(
             {
                 "message": f"It seems that company does not exist within our record!",
                 "status": SUCCESS["STATUS"],
-                "status_code": SUCCESS_CODE["NOCONTENT"],
-            }
+            },
+            status=SUCCESS_CODE["NOCONTENT"],
         )
 
     except (KeyError, TypeError) as error:
@@ -170,8 +170,8 @@ def get_company(request, user_model):
             {
                 "message": UN_AUTHORIZED["MESSAGE"],
                 "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"],
-            }
+            },
+            status=UN_AUTHORIZED["CODE"],
         )
     except (AssertionError, ValueError, AttributeError) as error:
         print("api.views.comapny_views.get_company()")
@@ -180,8 +180,8 @@ def get_company(request, user_model):
             {
                 "message": UN_AUTHORIZED["MESSAGE"],
                 "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"],
-            }
+            },
+            status=UN_AUTHORIZED["CODE"],
         )
 
 
@@ -207,24 +207,24 @@ def update_company(request, user_model):
                     {
                         "message": "SUCCESS",
                         "status": SUCCESS["STATUS"],
-                        "status_code": SUCCESS_CODE["STANDARD"],
-                    }
+                    },
+                    status=SUCCESS_CODE["STANDARD"],
                 )
             else:
                 return Response(
                     {
                         "message": f"It seems that company does not exist within our record!",
                         "status": SUCCESS["STATUS"],
-                        "status_code": SUCCESS_CODE["NOCONTENT"],
-                    }
+                    },
+                    status=SUCCESS_CODE["NOCONTENT"],
                 )
         else:
             return Response(
                 {
                     "message": UN_AUTHORIZED["MESSAGE"],
                     "status": UN_AUTHORIZED["STATUS"],
-                    "status_code": UN_AUTHORIZED["CODE"],
-                }
+                },
+                status=UN_AUTHORIZED["CODE"],
             )
 
     except (KeyError, TypeError) as error:
@@ -233,8 +233,8 @@ def update_company(request, user_model):
             {
                 "message": UN_AUTHORIZED["MESSAGE"],
                 "status": UN_AUTHORIZED["STATUS"],
-                "status_code": UN_AUTHORIZED["CODE"],
-            }
+            },
+            status=UN_AUTHORIZED["CODE"],
         )
 
     except (AttributeError, AssertionError) as error:
@@ -243,6 +243,6 @@ def update_company(request, user_model):
             {
                 "message": SERVER_ERROR["MESSAGE"],
                 "status": SERVER_ERROR["STATUS"],
-                "status_code": SERVER_ERROR["CODE"],
-            }
+            },
+            status=SERVER_ERROR["CODE"],
         )
