@@ -85,7 +85,6 @@ def reset_password_notify_user(subject, message, subject2, user_mail, username):
         return True,
     return False
 
-
 def split_bearer_value(token):
     # print(token)
     if token:
@@ -96,3 +95,68 @@ def split_bearer_value(token):
         return token_striped
     else:
         return ""
+
+# fax 
+# params -> company dict with  {name,address,phone and fax number }
+# then a dict with fax information such as
+# {ricipient fax number, status,confirmation id, date/time sent and delivered}
+def generate_fax_confirmation(pdf_canvas, data):
+    print("api.utils.generate_fax_confirmation.generate_fax_confirmation()")
+    # Add content to the PDF
+    # Header
+    # Company Name
+    pdf_canvas.setFont("Helvetica-Bold", 20)
+    pdf_canvas.drawString(200, 750, data["company_name"])
+    # Company Address
+    pdf_canvas.setFont("Helvetica-Bold", 12)
+    pdf_canvas.drawString(250, 730, data["company_address"])
+
+    # Company Contanct
+    pdf_canvas.setFont("Helvetica-Bold", 12)
+    pdf_canvas.drawString(100, 700, f"Phone Number: {data["company_phone_number"]}")
+    pdf_canvas.drawString(300, 700, f"Fax number: {data['company_fax_number']}")
+
+    # Confirmation information
+
+    pdf_canvas.setFont("Helvetica", 14)
+    # Confirmation ID row
+    pdf_canvas.drawString(100, 570, "Confirmation ID: ")
+    pdf_canvas.drawString(250, 570, data["confirmation_id"])
+
+    # Sender information row
+    pdf_canvas.drawString(100, 540, "From: ")
+    pdf_canvas.drawString(250, 540, data["sender"])
+
+    # Recipient information row
+    pdf_canvas.drawString(100, 510, "To: ")
+    pdf_canvas.drawString(250, 510, data["recipient"])
+
+    # Pages sent information row
+    pdf_canvas.drawString(100, 480, "Pages Sent:")
+    pdf_canvas.drawString(250, 480, data["total_pages"])
+
+    # Pages delivered information row
+    pdf_canvas.drawString(100, 450, "Pages Delivered: 3")
+    pdf_canvas.drawString(250, 450, data["pages_delivered"])
+
+    # Status Information row
+    pdf_canvas.drawString(100, 420, "Status: ")
+    pdf_canvas.drawString(250, 420, data["fax_status"])
+
+    # Date/time fax sent row
+    pdf_canvas.drawString(100, 390, "Time Sent")
+    pdf_canvas.drawString(250, 390, data["fax_sent_time"])
+
+    # Date/Time Fax received by recipient
+    pdf_canvas.drawString(100, 360, "Time Delivered")
+    pdf_canvas.drawString(250, 360, data["fax_delivered_time"])
+
+    # Add a footer
+    pdf_canvas.setFont("Helvetica-Oblique", 10)
+    pdf_canvas.drawString(100, 50, "This is a system-generated document.")
+
+    # Finalize the PDF and close the canvas
+    pdf_canvas.showPage()
+    pdf_canvas.save()
+
+    return pdf_canvas
