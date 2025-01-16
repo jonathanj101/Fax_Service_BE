@@ -19,9 +19,10 @@ def delete_cs_files(bucket_name, files):
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
         deleted_files = bucket.delete_blobs(files)
+        # print(deleted_files)
         return True
     except Exception as error:
-        print("An Google Cloud Storage error occurred ->", error)
+        print("An Google Cloud Storage delete files error occurred ->", error)
         logging.error("An Google Cloud Storage error occurred -> ", error)
         return False
 

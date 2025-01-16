@@ -32,7 +32,7 @@ def generate_presigned_cs_file_url(bucket_name, blob_name, expiration_minutes=15
 
         # upload_cs_file(bucket_name,"/test/app_drive_test.pdf",)
 
-        return url
+        return {"presigned_url": url}
     except Exception as error:
         print(
             "An Google Cloud Storage generate pre-signed cs file error occurred ->",

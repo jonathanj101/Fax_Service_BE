@@ -13,7 +13,8 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.environ[
 
 
 def create_bucket(bucket_name, storage_class="STANDARD", location="us"):
-
+    # bucket name = fax_service or name of company with uuid
+    # bucket_name = f"fax_service_{uuid.uuid4()}"
     try:
         storage_client = storage.Client()
 
@@ -24,9 +25,9 @@ def create_bucket(bucket_name, storage_class="STANDARD", location="us"):
         print(f"Bucket {bucket.name} successfully created.")
         return True
     except Exception as error:
-        print("An Google Cloud Storage error occurred ->", error)
+        print("An Google Cloud Storage create bucket error occurred ->", error)
         logging.error(
-            "An Google Cloud Storage bucket creation error occurred -> ", error
+            "An Google Cloud Storage create bucket bucket creation error occurred -> ", error
         )
         print(f"Bucket {bucket.name} not created, an error occurred")
         return False

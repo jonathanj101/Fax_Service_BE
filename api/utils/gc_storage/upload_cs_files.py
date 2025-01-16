@@ -1,7 +1,7 @@
 from google.cloud import storage
 from google.cloud.storage import transfer_manager
-import os
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
@@ -24,6 +24,9 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.environ[
 
 
 def upload_cs_files(bucket_name, filenames, blob_name_prefix, source_directory):
+    # print(BASE_DIR)
+    # for file in blob_name_prefix:
+    #     print(file)
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
 
@@ -39,6 +42,7 @@ def upload_cs_files(bucket_name, filenames, blob_name_prefix, source_directory):
 
         if isinstance(result, Exception):
             print("Failed to upload {} due to exception: {}".format(name, result))
+            return False
         else:
             print("Uploaded {} to {}.".format(name, bucket.name))
 

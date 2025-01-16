@@ -27,11 +27,13 @@ def download_cs_files(bucket_name, filenames, destination):
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
-        results = transfer_manager.download_many_to_path(bucket, filenames, destination)
+        results = transfer_manager.download_many_to_path(
+            bucket, filenames, destination)
         return True
     except Exception as error:
-        print("An Google Cloud Storage error occurred ->", error)
-        logging.error("An Google Cloud Storage download files error occured -> ", error)
+        print("An Google Cloud Storage download files error occurred ->", error)
+        logging.error(
+            "An Google Cloud Storage download files error occured -> ", error)
         return False
 
 
