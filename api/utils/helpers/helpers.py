@@ -85,6 +85,7 @@ def reset_password_notify_user(subject, message, subject2, user_mail, username):
         return True,
     return False
 
+
 def split_bearer_value(token):
     # print(token)
     if token:
@@ -96,10 +97,12 @@ def split_bearer_value(token):
     else:
         return ""
 
-# fax 
+# fax confirmation page,
 # params -> company dict with  {name,address,phone and fax number }
 # then a dict with fax information such as
 # {ricipient fax number, status,confirmation id, date/time sent and delivered}
+
+
 def generate_fax_confirmation(pdf_canvas, data):
     print("api.utils.generate_fax_confirmation.generate_fax_confirmation()")
     # Add content to the PDF
@@ -113,8 +116,10 @@ def generate_fax_confirmation(pdf_canvas, data):
 
     # Company Contanct
     pdf_canvas.setFont("Helvetica-Bold", 12)
-    pdf_canvas.drawString(100, 700, f"Phone Number: {data["company_phone_number"]}")
-    pdf_canvas.drawString(300, 700, f"Fax number: {data['company_fax_number']}")
+    pdf_canvas.drawString(100, 700, f"Phone Number: {
+                          data["company_phone_number"]}")
+    pdf_canvas.drawString(300, 700, f"Fax number: {
+                          data['company_fax_number']}")
 
     # Confirmation information
 
