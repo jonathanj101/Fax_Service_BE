@@ -31,7 +31,7 @@ SECRET_KEY = os.environ["SECRET_KEY"]
 DEBUG = os.environ["DEV"] if os.environ["DEV"] else os.environ["PROD"]
 # print(DEBUG)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost"]
 
 
 # Application definition
@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+
     "api.apps.ApiConfig",
     "rest_framework",
     "corsheaders"
@@ -52,13 +52,13 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    # "api.middleware.auth.auth_middleware",
-    "corsheaders.middleware.CorsMiddleware",
+    "api.middleware.auth.auth_middleware",
 ]
 
 ROOT_URLCONF = 'server.urls'
@@ -134,6 +134,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = '/static/'
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
@@ -148,15 +150,26 @@ EMAIL_USE_TLS = os.environ["ENV_EMAIL_TSL"]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_HEADERS = list(default_headers) + [
-    "Access-Control-Allow-Origin",
-    "X-CSRFToken",
-    "secret_access",
-    "csrftoken",
-    "auth" "secret_refresh" "Cookie",
-    "jwt-token",
+# CSRF_COOKIE_HTTPONLY = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
 ]
 
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_METHODS = ("GET","POST", 'PUT', "PATCH", 'DELETE', "OPTIONS")
-# CORS_ALLOWED_ORIGINS = ["http://localhost:8000"]
+CSRF_TRUSTED_ORIGINS = ["http://localhost:5173",
+                        "http://localhost:8000", "http://127.0.0.1:8000"]
+# allow headers from the browser
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "Access-Control-Allow-Origin",
+    "Access-Control-Allow-Headers",
+    "Access-Control-Allow-Credentials",
+    "X-CSRFToken",
+    "Authorization",
+    "Set-Cookie",
+    "Content-Type"
+]
+# headers expose to the browser
+CORS_EXPOSE_HEADERS = ["Authorization", "csrftoken"]
+
+CORS_ALLOW_METHODS = ("GET", "POST", 'PUT', "PATCH", 'DELETE', "OPTIONS")
+# CORS_ALLOWED_ORIGINS = ["http://localhost:8000", "http://127.0.0.1:8000"]
