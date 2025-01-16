@@ -4,7 +4,6 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password, check_password
 from dotenv import load_dotenv
-import uuid
 import json
 import logging
 
@@ -17,21 +16,19 @@ from api.utils.helpers.helpers import (
     generate_random_password,
     reset_password_notify_user,
     forgot_password_notify_user,
-    split_bearer_value,
 )
 from api.utils.server_responses.http_responses import (
     SUCCESS,
     SUCCESS_CODE,
     SERVER_ERROR,
     UN_AUTHORIZED,
-    FORBIDEN_ACCESS,
     UNPROCESSIBLE_ENTITY,
 )
 
 # from api.utils.common.common import EMAIL_OWNER
 
 # Auth
-from api.utils.auth.jwt_auth import create_access_jwtoken,decode_access_jwtoken, create_refresh_jwtoken
+from api.utils.auth.jwt_auth import create_access_jwtoken, create_refresh_jwtoken
 
 # Loading environment variables
 load_dotenv()
@@ -43,7 +40,7 @@ def login(request):
     print("api.views.user.login")
 
     REQUEST_BODY = json.loads(request.body)
-    print(request.headers)
+    # print(request.headers)
 
     try:
         USER_OBJ = {
@@ -51,7 +48,8 @@ def login(request):
             "password": REQUEST_BODY["password"],
         }
         # print(request.COOKIES.get("jwt-token"))
-        USER_MODEL = UserModel.objects.filter(username=USER_OBJ["username"]).first()
+        USER_MODEL = UserModel.objects.filter(
+            username=USER_OBJ["username"]).first()
 
         if USER_MODEL is not None and check_password(
             USER_OBJ["password"], USER_MODEL.password
@@ -61,7 +59,8 @@ def login(request):
                     UserModel.objects.filter(username=USER_OBJ["username"]), many=True
                 ).data[0]
 
-                secret_access = create_access_jwtoken(serializer["user_id"])["payload"]
+                secret_access = create_access_jwtoken(
+                    serializer["user_id"])["payload"]
                 secret_refresh = create_refresh_jwtoken(serializer["user_id"])[
                     "payload"
                 ]
@@ -86,7 +85,7 @@ def login(request):
                     "Authorization": secret_access,
                     # "X-CSRFToken": secret_refresh,
                 }
-                print(response)
+                # print(response)
                 # print(response.COOKIES)
 
                 return response
@@ -120,10 +119,11 @@ def login(request):
             status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
+
 @api_view(["PUT"])
 def log_out(request):
     print("api.views.user.log_out()")
-    print(request.COOKIES)
+    # print(request.COOKIES)
     response = Response()
     response.delete_cookie(key="csrftoken", samesite="None")
     response.data = {
@@ -133,8 +133,9 @@ def log_out(request):
     response.status_code = SUCCESS["STATUS"]
 
     response.headers["Authorization"] = ""
-    print(request.COOKIES)
+    # print(request.COOKIES)
     return response
+
 
 @api_view(['PUT', 'POST'])
 def register(request):
@@ -161,7 +162,8 @@ def register(request):
         ).first()
 
         # FILTER USER BY EMAIL, TO CHECK IF SAME EMAIL EXISTS WITHIN DB
-        FILTER_BY_EMAIL = UserModel.objects.filter(email=USER_OBJ["email"]).first()
+        FILTER_BY_EMAIL = UserModel.objects.filter(
+            email=USER_OBJ["email"]).first()
 
         if FILTER_BY_USERNAME is not None:
             print("username is taken")
@@ -246,7 +248,8 @@ def register(request):
 
 # need re-work logic with recently updated jwt auth logic
 @api_view(["GET"])
-def get_logged_in_user_info(request, user_model):  # data = user model from middleware
+# data = user model from middleware
+def get_logged_in_user_info(request, user_model):
     print("api.get_logged_in_info()")
     try:
         serializer = UserSerializer(
@@ -290,7 +293,8 @@ def forgot_password(request):
     # get username from request body
     try:
         REQUEST_BODY = json.loads(request.body)
-        USER = UserModel.objects.filter(username=REQUEST_BODY["username"]).first()
+        USER = UserModel.objects.filter(
+            username=REQUEST_BODY["username"]).first()
         if USER is not None:
             # We want to generate temporary password
             temporary_password = generate_random_password()
@@ -350,6 +354,7 @@ def forgot_password(request):
             status=UNPROCESSIBLE_ENTITY["CODE"],
         )
 
+
 @api_view(["POST"])
 def reset_password(request):
     print("api/reset_password()")
@@ -405,7 +410,6 @@ def update_user(request, user_model):
     try:
         REQUEST_BODY = json.loads(request.body)
         DATA = REQUEST_BODY["data"]
-        user_id = DATA["user_id"]
         update_data = DATA["update_data"]
 
         USER = UserModel.objects.get(user_id=DATA["user_id"])
