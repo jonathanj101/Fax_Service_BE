@@ -1,6 +1,7 @@
 # Import modules
 from django.core.mail import send_mail
 import random
+import uuid
 
 
 def generate_random_password(length=30):
@@ -165,3 +166,30 @@ def generate_fax_confirmation(pdf_canvas, data):
     pdf_canvas.save()
 
     return pdf_canvas
+
+
+def get_file_name(files_path):
+    extensionsToCheck = [".pdf", ".jpg", "jpeg", ".xls", ".png", ".json"]
+    filenames = []
+    for file in files_path:
+        split_filename = file.split("/")
+        for split_item in split_filename:
+            print(split_item)
+            for ext in extensionsToCheck:
+                if split_item.endswith(ext):
+                    print(split_item)
+                    filenames.append(split_item)
+
+    return filenames
+
+
+def gcs_custom_bucket_name(company_name):
+    # print(company_name)
+    company_name = company_name.lower()
+    bucket_name = ""
+    for index in range(6):
+        bucket_name += company_name[index]
+        print(bucket_name)
+    bucket_name = f"{bucket_name}-fax-file-storage-{uuid.uuid4()}"
+    print(len(bucket_name))
+    return bucket_name
