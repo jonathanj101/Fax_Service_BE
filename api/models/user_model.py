@@ -14,6 +14,7 @@ class UserModel(models.Model):
     timestamp = models.DateField(blank=True,default=timezone.now)
     role = models.CharField(max_length=100,null=False,default='user')
     user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    stripe_id = models.CharField(max_length=300, null=True,editable=True)
 
     def __str__(self):
         return f"User (`{self.first_name}`, `{self.middle_name}`. `{self.last_name}`, `{self.email}`, `{self.username}`, `{self.role}` , `{self.user_id}` `{self.timestamp}` )"
