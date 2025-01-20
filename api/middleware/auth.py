@@ -1,13 +1,9 @@
 import django
 import json
-from rest_framework.response import Response
 from django.http import JsonResponse
 from api.utils.auth.jwt_auth import decode_access_jwtoken
 from api.utils.helpers.helpers import split_bearer_value
 from api.utils.server_responses.http_responses import (
-    SUCCESS,
-    SUCCESS_CODE,
-    SERVER_ERROR,
     UN_AUTHORIZED,
     UNPROCESSIBLE_ENTITY,
 )
@@ -21,10 +17,15 @@ def auth_middleware(get_response):
     print("Users Auth Middleware Initialized")
 
     def wrapped_view(request):
-        print(request.COOKIES)
+        # print(request.COOKIES)
         # print(request)
         try:
             # print(request.headers["Authorization"])
+            # excluded_paths = [
+            #     "/api/fax-services/list-all-fax"
+            # ]
+            # if request.path in excluded_paths:
+            #     return get_response(request)
             if request.headers["Authorization"]:
                 token = split_bearer_value(request.headers["Authorization"])
                 decoded_token = decode_access_jwtoken(token)
@@ -95,7 +96,8 @@ def auth_middleware(get_response):
                 status=UNPROCESSIBLE_ENTITY["CODE"],
             )
         except Exception as error:
-            logging.error("Unexpected error occurred in auth middleware", exc_info=True)
+            logging.error(
+                "Unexpected error occurred in auth middleware", exc_info=True)
             # return Response(
             #     {
             #         "message": "An unexpected error occurred",
@@ -184,7 +186,8 @@ def admin_auth_middleware(get_response):
                 status=UNPROCESSIBLE_ENTITY["CODE"],
             )
         except Exception as error:
-            logging.error("Unexpected error occurred in auth middleware", exc_info=True)
+            logging.error(
+                "Unexpected error occurred in auth middleware", exc_info=True)
             # return Response(
             #     {
             #         "message": "An unexpected error occurred",
@@ -283,7 +286,8 @@ def leads_auth_middleware(get_response):
                 status=UNPROCESSIBLE_ENTITY["CODE"],
             )
         except Exception as error:
-            logging.error("Unexpected error occurred in auth middleware", exc_info=True)
+            logging.error(
+                "Unexpected error occurred in auth middleware", exc_info=True)
             # return Response(
             #     {
             #         "message": "An unexpected error occurred",
